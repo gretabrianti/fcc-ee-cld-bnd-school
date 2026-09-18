@@ -22,7 +22,7 @@ logging.getLogger("puma").setLevel(logging.ERROR)  # silence benign "rejection i
 
 import slide_readings as sl
 import style
-from toygen import cutflow, relativistic_bw_resonance, rng
+from toygen import cutflow, relativistic_bw_resonance, rng, chi2_between
 
 FIGDIR = os.path.join(os.path.dirname(__file__), "..", "figures", "sm")
 os.makedirs(FIGDIR, exist_ok=True)
@@ -139,35 +139,40 @@ def toy_vs_data_histogram(toy_values, xrange, data_centers, data_values, xlabel,
         key="data",
     )
     plot.draw()
+    chi2, ndof, chi2_ndof = chi2_between(data_values, mc_counts)
+    style.annotate_chi2(plot.axis_top, rf"$\chi^2$/ndof = {chi2:.1f}/{ndof} = {chi2_ndof:.2f}")
     plot.savefig(outpath)
     plt.close("all")
+    return chi2, ndof, chi2_ndof
 
 
 def make_all_mass_plots():
-    toy_vs_data_histogram(
+    results = {}
+    results["higgs_160"] = toy_vs_data_histogram(
         relativistic_bw_resonance(6000, 125, 4.1, 8, 1), (60, 145),
         sl.S160_HIGGS_MJJ_CENTERS, sl.S160_HIGGS_MJJ_DATA,
         "m(J1, J2) [GeV]", 160, os.path.join(FIGDIR, "03_mass_higgs_160GeV.png"), "X1",
         r"Higgs (toy, $\nu\nu H$)",
     )
-    toy_vs_data_histogram(
+    results["ww_160"] = toy_vs_data_histogram(
         relativistic_bw_resonance(8000, 153, 2.0, 6, 2), (122, 168),
         sl.S160_WW_MLMETJJ_CENTERS, sl.S160_WW_MLMETJJ_DATA,
         "m(l1, MET, J1, J2) [GeV]", 160, os.path.join(FIGDIR, "04_mass_ww_160GeV.png"), "X2",
         "WW (toy, semileptonic)",
     )
-    toy_vs_data_histogram(
+    results["ttbar_365"] = toy_vs_data_histogram(
         relativistic_bw_resonance(6000, 178, 1.4, 20, 3), (110, 250),
         sl.S365_TTBAR_MASS_CENTERS, sl.S365_TTBAR_MASS_DATA,
         "(j1+met+l1).mass [GeV]", 365, os.path.join(FIGDIR, "05_mass_ttbar_365GeV.png"), "X1",
         r"$t\bar{t}$ (toy)",
     )
-    toy_vs_data_histogram(
+    results["zz_365"] = toy_vs_data_histogram(
         relativistic_bw_resonance(9000, 91, 2.5, 6, 5), (55, 125),
         sl.S365_ZZ_MASS_CENTERS, sl.S365_ZZ_MASS_DATA,
         "(j1+j2).mass [GeV]", 365, os.path.join(FIGDIR, "06_mass_zz_365GeV.png"), "X5",
         r"$ZZ \rightarrow \ell\ell q\bar{q}$ (toy)",
     )
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -294,15 +299,21 @@ def completeness_plot(components, data_centers, data_values, xlabel, energy_gev,
         key="data",
     )
     plot.draw()
+    bkg_total = np.full(n_bins, bkg_level * sum(f for _, _, f in components))
+    chi2, ndof, chi2_ndof = chi2_between(data_values, bkg_total, n_fit_params=0)
+    style.annotate_chi2(
+        plot.axis_top, rf"$\chi^2$/ndof (data vs. SM sum) = {chi2:.0f}/{ndof} = {chi2_ndof:.0f}"
+    )
     plot.savefig(outpath)
     plt.close("all")
+    return chi2, ndof, chi2_ndof
 
 
 def main():
     cutflow_efficiency_plot(CUTFLOWS_160, 160, os.path.join(FIGDIR, "01_cutflow_efficiency_160GeV.png"))
     cutflow_efficiency_plot(CUTFLOWS_365, 365, os.path.join(FIGDIR, "02_cutflow_efficiency_365GeV.png"))
 
-    make_all_mass_plots()
+    mass_chi2 = make_all_mass_plots()
 
     lepton_pt_turnon_plot(os.path.join(FIGDIR, "07_lepton_pt_efficiency_turnon.png"))
     btag_stats = btag_efficiency_comparison_plot(os.path.join(FIGDIR, "08_btag_efficiency_comparison.png"))
@@ -320,12 +331,12 @@ def main():
         "Task A entirely missing from the talk -- expected mix only",
     )
 
-    completeness_plot(
+    comp_chi2_91 = completeness_plot(
         [("toy SM sum (Task A not done at 91 GeV)", "X2", 1.0)],
         sl.S91_MJ1L1_CENTERS, sl.S91_MJ1L1_DATA,
         "m(J1, l1) [GeV]", 91, os.path.join(FIGDIR, "11_completeness_91GeV.png"),
     )
-    completeness_plot(
+    comp_chi2_365 = completeness_plot(
         [(r"$t\bar{t}$", "X1", 0.30), (r"$e^+e^- \rightarrow f\bar{f}$", "X2", 0.25),
          ("ZZ", "X5", 0.20), ("ZH", "X3", 0.15), ("WW", "X4", 0.10)],
         sl.S365_MTOT_CENTERS, sl.S365_MTOT_DATA,
@@ -334,6 +345,11 @@ def main():
 
     print("SM interpretation figures written to", FIGDIR)
     print("b-tag toy stats:", btag_stats)
+    print("mass-plot chi2/ndof (toy vs pseudo-data):")
+    for name, (chi2, ndof, chi2_ndof) in mass_chi2.items():
+        print(f"  {name}: chi2={chi2:.1f}, ndof={ndof}, chi2/ndof={chi2_ndof:.2f}")
+    print(f"completeness 91 GeV (data vs SM sum): chi2/ndof = {comp_chi2_91[0]:.0f}/{comp_chi2_91[1]} = {comp_chi2_91[2]:.0f}")
+    print(f"completeness 365 GeV (data vs SM sum): chi2/ndof = {comp_chi2_365[0]:.0f}/{comp_chi2_365[1]} = {comp_chi2_365[2]:.0f}")
 
 
 if __name__ == "__main__":

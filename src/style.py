@@ -64,5 +64,16 @@ def cld_atlasify(ax, energy_gev=None, subtext_extra=None):
     )
 
 
+def annotate_chi2(ax, text):
+    """Place a chi2/ndof annotation just under the CLD / sqrt(s) badge
+    (top-left), left-aligned, no box -- the standard spot for it on every
+    distribution-comparison plot in this repo.
+    """
+    ax.text(
+        0.02, 0.84, text,
+        transform=ax.transAxes, fontsize=9, va="top", ha="left",
+    )
+
+
 def savefig(fig, path, dpi=DPI):
     fig.savefig(path, dpi=dpi, bbox_inches="tight", pad_inches=0.05)

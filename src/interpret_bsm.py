@@ -39,6 +39,7 @@ from toygen import (
     counting_significance,
     poisson_excess_significance,
     significance_with_bkg_uncertainty,
+    chi2_between,
 )
 
 FIGDIR = os.path.join(os.path.dirname(__file__), "..", "figures", "bsm")
@@ -85,11 +86,16 @@ def hypothesis_test_plot(h0_values, h1_values, data_centers, data_values, xlabel
         key="data",
     )
     plot.draw()
+    chi2_h0, ndof_h0, chi2ndof_h0 = chi2_between(data_values, h0_counts)
+    chi2_h1, ndof_h1, chi2ndof_h1 = chi2_between(data_values, h1_counts)
+    style.annotate_chi2(
+        plot.axis_top,
+        rf"$\chi^2$/ndof(H0) = {chi2_h0:.1f}/{ndof_h0} = {chi2ndof_h0:.2f}"
+        "\n"
+        rf"$\chi^2$/ndof(H1) = {chi2_h1:.1f}/{ndof_h1} = {chi2ndof_h1:.2f}",
+    )
     plot.savefig(outpath)
     plt.close("all")
-
-    chi2_h0 = np.sum((data_values - h0_counts) ** 2 / np.clip(data_values, 1, None))
-    chi2_h1 = np.sum((data_values - h1_counts) ** 2 / np.clip(data_values, 1, None))
     return chi2_h0, chi2_h1
 
 
@@ -188,6 +194,24 @@ def main():
         91, os.path.join(FIGDIR, "01_hnl_91GeV_hypothesis_test.png"),
     )
 
+    # --- 91 GeV: dedicated HNL mass-reconstruction toy, analogous to the
+    # 365 GeV W/HNL mass plots below. Per slide 15, at 91 GeV only ONE jet is
+    # assumed reconstructed (the two quarks from the very off-shell W* in
+    # N -> l' q qbar' are too collimated to resolve into two jets when
+    # m_HNL=40 GeV << m_W=80.4 GeV), so there is no 365-GeV-style separate
+    # "W mass" plot here -- m(J1, l1) already IS the full HNL mass estimator.
+    # The combinatorial ambiguity at 91 GeV is instead which of the two
+    # leptons in the "2 leptons + MET" final state (slide 15) is paired with
+    # the jet; modelled the same way as the 365 GeV mis-pairing smear.
+    correct_hnl_91 = relativistic_bw_resonance(4000, 40, 0.6, 6, seed_offset=22)
+    hnl_toy_91 = wrong_pairing_smear(correct_hnl_91, mis_id_fraction=0.35, spread=12, seed_offset=23)
+    single_histogram_plot(
+        hnl_toy_91, (0, 60), "m(J1, l1) [GeV]", 91,
+        os.path.join(FIGDIR, "02_HNL_mass_91GeV.png"), "X1",
+        "toy: correct lepton pairing (65%) + mis-pairing (35%)", vline=40,
+        vline_label=r"reported $m_{HNL} \sim$ 40 GeV",
+    )
+
     # n_obs read directly off the slide-14 pseudo-data; as a side check, note
     # that n_obs - quoted_excess (31 - 29.6 ~= 1.4) already implies a small
     # background, consistent with this being a tight, high-purity selection.
@@ -196,7 +220,7 @@ def main():
         n_obs_91, dict(n_jets=1, n_el=0.5, n_mu=0.5, n_bjets=0),
         {"slide-14 fit box": sl.S91_SIGMA_FITBOX, "slide-14 text": sl.S91_SIGMA_TEXT,
          "slide-16 headline": sl.S91_SIGMA_SLIDE16},
-        91, os.path.join(FIGDIR, "02_significance_hierarchy_91GeV.png"),
+        91, os.path.join(FIGDIR, "03_significance_hierarchy_91GeV.png"),
     )
 
     # --- 365 GeV: W and HNL mass reconstruction toys ---
@@ -204,7 +228,7 @@ def main():
     w_toy = wrong_pairing_smear(correct_w, mis_id_fraction=0.5, spread=35, seed_offset=31)
     single_histogram_plot(
         w_toy, (0, 200), "m(j2, j3) [GeV]", 365,
-        os.path.join(FIGDIR, "03_W_mass_365GeV.png"), "X1",
+        os.path.join(FIGDIR, "04_W_mass_365GeV.png"), "X1",
         "toy: correct pairing (50%) + mis-pairing (50%)", vline=80.4, vline_label=r"$m_W$ = 80.4 GeV",
     )
 
@@ -212,7 +236,7 @@ def main():
     hnl_toy = wrong_pairing_smear(correct_hnl, mis_id_fraction=0.55, spread=45, seed_offset=33)
     single_histogram_plot(
         hnl_toy, (0, 300), "m(j2, j3, l2) [GeV]", 365,
-        os.path.join(FIGDIR, "04_HNL_mass_365GeV.png"), "X3",
+        os.path.join(FIGDIR, "05_HNL_mass_365GeV.png"), "X3",
         "toy: correct pairing (45%) + mis-pairing (55%)", vline=150,
         vline_label=r"reported $m_{HNL} \sim$ 150 GeV",
     )
@@ -226,14 +250,14 @@ def main():
         h0_365, h1_365, sl.S365_MTOT_CENTERS, sl.S365_MTOT_DATA,
         "(j1+j2+j3+j4+l1+l2).mass [GeV]", "H0: localised resonance (toy)",
         "H1: mis-reco SM ZZ/WW tail (toy)", 365,
-        os.path.join(FIGDIR, "05_hnl_365GeV_alternative_test.png"),
+        os.path.join(FIGDIR, "06_hnl_365GeV_alternative_test.png"),
     )
 
     n_obs_365 = float(sl.S365_MTOT_DATA.sum())
     sig_stats_365 = significance_hierarchy_plot(
         n_obs_365, dict(n_jets=2, n_el=1, n_mu=1, n_bjets=0),
         {"slide-17 quoted": sl.S365_SIGMA_QUOTED},
-        365, os.path.join(FIGDIR, "06_significance_hierarchy_365GeV.png"),
+        365, os.path.join(FIGDIR, "07_significance_hierarchy_365GeV.png"),
     )
 
     print("BSM interpretation figures written to", FIGDIR)
@@ -241,7 +265,43 @@ def main():
     print(f"91 GeV significance tiers: {sig_stats_91}")
     print(f"365 GeV shape test: chi2(H0 resonance)={chi2_h0_365:.1f} vs chi2(H1 SM mis-reco)={chi2_h1_365:.1f}")
     print(f"365 GeV significance tiers: {sig_stats_365}")
+    print_x_identity_conclusion(chi2_h0_91, chi2_h1_91, chi2_h0_365, chi2_h1_365)
     print_human_action_items()
+
+
+def print_x_identity_conclusion(chi2_h0_91, chi2_h1_91, chi2_h0_365, chi2_h1_365):
+    print("=" * 72)
+    print("CAN THIS BSM STUDY TELL US WHAT X1..X5 REALLY ARE?")
+    print("-" * 72)
+    print(
+        "Short answer: no, not individually -- this study never fits or\n"
+        "identifies a specific X-labelled sample, at either energy. What it\n"
+        "DOES show, quantitatively:\n"
+    )
+    print(
+        f"  91 GeV:  chi2(HNL hypothesis)={chi2_h0_91:.1f}  vs.  "
+        f"chi2(generic smooth SM-like background)={chi2_h1_91:.1f}\n"
+        f" 365 GeV:  chi2(localised resonance)={chi2_h0_365:.1f}  vs.  "
+        f"chi2(mis-reconstructed SM ZZ/WW tail)={chi2_h1_365:.1f}\n"
+    )
+    print(
+        "In both cases the 'boring' alternative -- a smooth, generic\n"
+        "background shape standing in for *any* combination of the ordinary\n"
+        "Z-pole (91 GeV: Bhabha, Z->qqbar, Z->ll, gamma-gamma) or already-\n"
+        "identified 365 GeV (ZZ, WW) processes -- fits far worse than the\n"
+        "localised resonance hypothesis, by a wide margin. Since the H1\n"
+        "alternative was deliberately built to be shape-agnostic (it does not\n"
+        "assume which X is which, only that ordinary SM backgrounds produce\n"
+        "smoothly falling / non-resonant shapes, which every physically\n"
+        "plausible candidate at these energies does), this is evidence against\n"
+        "'the excess is just an under-modelled tail of whichever X1..X5\n"
+        "really are' -- regardless of the true X-label identities. It is not\n"
+        "evidence FOR the HNL interpretation specifically (a different new-\n"
+        "physics shape could fit comparably well); it only weighs against\n"
+        "the null hypothesis that Task A, done correctly, would make the\n"
+        "excess disappear.\n"
+    )
+    print("=" * 72)
 
 
 def print_human_action_items():

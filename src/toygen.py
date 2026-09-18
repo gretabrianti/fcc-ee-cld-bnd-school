@@ -104,6 +104,23 @@ def cutflow(n_start, cuts):
     return rows
 
 
+def chi2_between(observed, expected, n_fit_params=1):
+    """Pearson chi2 between a binned observation and an expectation, using
+    the observed counts for the variance (standard for low-count histogram
+    comparisons where the "expected" is itself an uncertain toy/shape
+    prediction rather than a fixed model). Returns (chi2, ndof, chi2/ndof).
+
+    n_fit_params: degrees of freedom subtracted for normalisation choices
+    already made when building `expected` (e.g. 1 if it was shape-scaled to
+    match the observed total). Sensible default of 1.
+    """
+    observed = np.asarray(observed, dtype=float)
+    expected = np.asarray(expected, dtype=float)
+    chi2 = float(np.sum((observed - expected) ** 2 / np.clip(observed, 1.0, None)))
+    ndof = max(len(observed) - n_fit_params, 1)
+    return chi2, ndof, chi2 / ndof
+
+
 def compatibility_pull(a, a_err, b, b_err):
     """Simple Gaussian pull between two measurements, for a consistency check."""
     denom = np.sqrt(a_err**2 + b_err**2)

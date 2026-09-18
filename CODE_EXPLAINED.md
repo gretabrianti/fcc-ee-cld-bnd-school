@@ -75,6 +75,18 @@ model and doesn't include whatever continuum/combinatorial background is
 really sitting under the peak in the real analysis. A tail disagreement is
 not a red flag; a peak-region disagreement would be.
 
+Every one of these plots also carries a **chi2/ndof** text box (Pearson
+chi2 between the pseudo-data and the shape-scaled toy, computed by
+`toygen.chi2_between`, `ndof = n_bins - 1` for the one normalisation degree
+of freedom used in the shape-scaling). Read chi2/ndof close to 1 as "the toy
+shape is statistically compatible with the reported points"; chi2/ndof >> 1
+(e.g. the Higgs plot, ~38) means the toy shape and the data disagree
+somewhere significantly -- check the ratio panel to see where (for the
+Higgs plot it's the rising low-mass tail below the peak, which our
+single-resonance toy was never meant to capture; the peak region itself
+agrees well). A large chi2/ndof here is a comment on the *toy's*
+simplifications, not on the talk's process identification.
+
 **`07_lepton_pt_efficiency_turnon.png`**
 The efficiency of a `lepton pt > 20 GeV` cut as a function of the *true*
 lepton pt, built from a toy detector model (true pt smeared by a resolution)
@@ -110,7 +122,11 @@ pseudo-data, with a Data/Pred. ratio panel -- exactly the plot style used in
 the talk's own FCE screenshots. If the ratio panel showed values near 1
 throughout, that would undermine the BSM claim (SM alone would explain the
 data); instead it climbs to several-to-dozens in the excess region, which is
-consistent with (though does not on its own prove) a real excess.
+consistent with (though does not on its own prove) a real excess. The
+chi2/ndof box quantifies the same thing as a single number (27/10=3 at
+91 GeV, 40/8=5 at 365 GeV, both computed against the flat toy SM sum) --
+values well above 1 confirm the SM-alone hypothesis is a poor description
+of the reported data, by construction of these plots.
 
 ## 2. `interpret_bsm.py` -- Task B (BSM validation)
 
@@ -132,13 +148,26 @@ numbers be reconciled?).
 Three things on one plot: the reported pseudo-data (slide 14), a toy HNL
 signal at the reported mass (H0, solid), and a toy non-resonant
 combinatorial background (H1, dashed -- representing "the excess is just
-random jet+lepton mis-pairings, not a new particle"). The chi2 printed by
-the script (H0=40.2 vs H1=52.3) favours H0, and visually H0 tracks the
-30-50 GeV peak in the data much better than the flat-ish H1. This doesn't
-*prove* the HNL interpretation, but it does show the data shape is not
-naturally explained by a boring alternative either.
+random jet+lepton mis-pairings, not a new particle"). The chi2/ndof box on
+the plot itself (H0=40.2/9=4.47 vs H1=52.3/9=5.81) favours H0, and visually
+H0 tracks the 30-50 GeV peak in the data much better than the flat-ish H1.
+This doesn't *prove* the HNL interpretation, but it does show the data
+shape is not naturally explained by a boring alternative either.
 
-**`02_significance_hierarchy_91GeV.png`, `06_significance_hierarchy_365GeV.png`**
+**`02_HNL_mass_91GeV.png`**
+The 91 GeV analogue of the 365 GeV `04_W_mass_365GeV.png`/
+`05_HNL_mass_365GeV.png` pair below. There is no separate "W mass" plot at
+91 GeV: per slide 15, only **one** jet is assumed reconstructed for the
+whole HNL decay chain, because at m_HNL~40 GeV the virtual W* in
+`N -> l' q qbar'` is so far off-shell (m_HNL << m_W = 80.4 GeV) that its two
+quarks are too collimated to resolve into two separate jets -- so `m(J1,l1)`
+*is* the full HNL mass estimator here, not an intermediate step. The
+combinatorial ambiguity at this energy is instead which of the (up to two)
+leptons in the "2 leptons + MET" final state (slide 15) gets paired with the
+jet; the toy mixes a correctly-paired resonance at 40 GeV with a
+wrong-lepton-pairing smear, the same technique used for the 365 GeV plots.
+
+**`03_significance_hierarchy_91GeV.png`, `07_significance_hierarchy_365GeV.png`**
 The most important validation plot in this repo. `fce_studio/engine/
 fitter.py` (the real analysis tool, not the dataset) implements three
 different significance estimators:
@@ -179,7 +208,7 @@ background (`b`≈2.4) assumed for the `12_completeness_365GeV.png` plot in
 the SM script -- flagged as an open inconsistency worth checking against the
 real background prediction, not silently reconciled.
 
-**`03_W_mass_365GeV.png`, `04_HNL_mass_365GeV.png`**
+**`04_W_mass_365GeV.png`, `05_HNL_mass_365GeV.png`**
 Toy reconstruction of the W boson (from `j2+j3`) and the HNL (from
 `j2+j3+l2`) in the HNL decay chain (slide 18). Both toys mix a
 correctly-paired resonance with a "wrong jet combination" smear (see
@@ -190,17 +219,36 @@ broad spread in the HNL mass plot is consistent with being a 3-body
 combinatorics/resolution effect, not evidence that the mass hypothesis
 itself is wrong.
 
-**`05_hnl_365GeV_alternative_test.png`**
+**`06_hnl_365GeV_alternative_test.png`**
 Same H0-vs-H1-vs-data logic as the 91 GeV plot, applied to the 365 GeV
 excess (slide 17): H0 is a localised new-physics resonance near `sqrt(s)`,
 H1 is a mis-reconstructed SM ZZ/WW tail (since ZZ and WW are *already*
 identified processes at 365 GeV with a similar final state -- see
 `notes/process_mapping.md`). H1 badly overshoots at high mass where the data
 does not, and undershoots the actual peak region; H0 tracks the data shape
-much more closely (chi2 28.9 vs. 1508.8). This is a meaningful check because
+much more closely (chi2/ndof: 28.9/7=4.12 vs. 1508.8/7=215.55, shown on the
+plot). This is a meaningful check because
 it rules out the most obvious "boring" explanation (mundane SM background
 mismeasurement) using processes the team has *already* identified in the
 same dataset, rather than an arbitrary alternative.
+
+### Does any of this tell us what X1..X5 really are?
+
+Short answer, printed explicitly at the end of every `interpret_bsm.py` run:
+**no, not individually.** Neither hypothesis test fits or names a specific
+X-labelled sample at either energy. What the two H0-vs-H1 tests *do* show,
+quantitatively, is that a deliberately shape-agnostic "boring SM" alternative
+(H1 -- a smooth non-resonant shape at 91 GeV, a mis-measured ZZ/WW tail at
+365 GeV, standing in for *any* combination of the plausible candidates)
+fits far worse than a localised-resonance hypothesis at both energies. Since
+H1 doesn't assume which X is which -- only that ordinary SM processes
+produce smoothly-falling or already-understood shapes, which is true of
+every physically plausible candidate at these energies -- a bad H1 fit is
+evidence against *"the excess is just an under-modelled tail of whichever
+X1..X5 really are"*, regardless of their true identities. It is not evidence
+*for* the HNL interpretation specifically (a different new-physics shape
+could fit comparably well); it only weighs against the null hypothesis that
+correctly finishing Task A would make the excess disappear on its own.
 
 ## 3. Statistics reference (`toygen.py`)
 
@@ -219,6 +267,11 @@ same dataset, rather than an arbitrary alternative.
   and references.
 - `background_relative_uncertainty`: combines the `fce_studio` systematics
   constants in quadrature for a representative event topology.
+- `chi2_between(observed, expected, n_fit_params)`: Pearson chi2 using the
+  observed counts for the variance (`sum((obs-exp)^2 / max(obs,1))`),
+  `ndof = n_bins - n_fit_params`. Used on every distribution-comparison plot
+  in both scripts (toy vs. pseudo-data, stacked SM vs. data, H0/H1 vs. data)
+  and drawn directly on the figure as a `chi2/ndof` text box.
 
 ## 4. Honesty notes / where this could be wrong
 

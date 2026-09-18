@@ -66,7 +66,7 @@ src/
                         the three different sigma values quoted at 91 GeV
 figures/
   sm/                   PNGs produced by interpret_sm.py (12 figures)
-  bsm/                  PNGs produced by interpret_bsm.py (6 figures)
+  bsm/                  PNGs produced by interpret_bsm.py (7 figures)
 notes/
   process_mapping.md    full reasoning behind the X1..X5 -> process mapping
                         used in this repo, energy point by energy point, with
