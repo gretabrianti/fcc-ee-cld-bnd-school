@@ -80,6 +80,12 @@ notes/
                         used in this repo, energy point by energy point, with
                         the inconsistencies found in the deck itself
 CODE_EXPLAINED.md       what every script/figure does, why, and how to read it
+fce_pipeline/
+  pipeline.json          load this into the real `fce` GUI to run the actual
+                        tests: 160/365 GeV Task A + 365/91 GeV Task B --
+                        91 GeV and 240 GeV Task A are deliberately excluded,
+                        see fce_pipeline/README.md
+  build_pipeline.py      regenerates pipeline.json from a small Python DSL
 data/
   (synthetic toy samples, if/when exported -- see interpret_sm.py / interpret_bsm.py)
 ```

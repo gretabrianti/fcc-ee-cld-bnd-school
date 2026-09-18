@@ -1,0 +1,1952 @@
+{
+  "version": 1,
+  "next_id": 63,
+  "nodes": [
+    {
+      "type": "node",
+      "nid": 0,
+      "node_type": "DataSource",
+      "pos": [
+        -1600,
+        -60
+      ],
+      "name": "CLD 160 GeV data",
+      "values": {
+        "cb_energy_0": "160 GeV",
+        "cb_detector_0": "CLD"
+      },
+      "links": [
+        {
+          "src_nid": 0,
+          "dst_nid": 1
+        },
+        {
+          "src_nid": 0,
+          "dst_nid": 7
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 1,
+      "node_type": "Multiplicity",
+      "pos": [
+        -1750,
+        90
+      ],
+      "name": "Higgs: presel.",
+      "values": {
+        "cb_ltype_1": "Any",
+        "cb_op_lep_1": ">=",
+        "txt_leptons_1": 0,
+        "cb_op_jet_1": ">=",
+        "txt_jets_1": 2,
+        "cb_op_phot_1": ">=",
+        "txt_photons_1": 0
+      },
+      "links": [
+        {
+          "src_nid": 0,
+          "dst_nid": 1
+        },
+        {
+          "src_nid": 1,
+          "dst_nid": 2
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 2,
+      "node_type": "Selection",
+      "pos": [
+        -1750,
+        240
+      ],
+      "name": "Higgs: b-tag>0.7 on j1,j2",
+      "values": {
+        "txt_sel_2": "j1.btag > 0.7 and j2.btag > 0.7"
+      },
+      "links": [
+        {
+          "src_nid": 1,
+          "dst_nid": 2
+        },
+        {
+          "src_nid": 2,
+          "dst_nid": 3
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 3,
+      "node_type": "Selection",
+      "pos": [
+        -1750,
+        390
+      ],
+      "name": "Higgs: 0 leptons",
+      "values": {
+        "txt_sel_3": "nlep == 0"
+      },
+      "links": [
+        {
+          "src_nid": 2,
+          "dst_nid": 3
+        },
+        {
+          "src_nid": 3,
+          "dst_nid": 4
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 4,
+      "node_type": "Selection",
+      "pos": [
+        -1750,
+        540
+      ],
+      "name": "Higgs: MET cut -- SET THRESHOLD (talk gives no number)",
+      "values": {
+        "txt_sel_4": "met.pt > 0"
+      },
+      "links": [
+        {
+          "src_nid": 3,
+          "dst_nid": 4
+        },
+        {
+          "src_nid": 4,
+          "dst_nid": 5
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 5,
+      "node_type": "ObsCustom",
+      "pos": [
+        -1750,
+        690
+      ],
+      "name": "m(J1,J2)",
+      "values": {
+        "txt_obs_5": "(j1.p4 + j2.p4).mass"
+      },
+      "links": [
+        {
+          "src_nid": 4,
+          "dst_nid": 5
+        },
+        {
+          "src_nid": 5,
+          "dst_nid": 6
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 6,
+      "node_type": "Histogram",
+      "pos": [
+        -1750,
+        840
+      ],
+      "name": "Higgs mass",
+      "values": {
+        "cb_target_6": "None",
+        "txt_bins_6": 40,
+        "txt_range_min_6": 60,
+        "txt_range_max_6": 160
+      },
+      "links": [
+        {
+          "src_nid": 5,
+          "dst_nid": 6
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 7,
+      "node_type": "Multiplicity",
+      "pos": [
+        -1450,
+        90
+      ],
+      "name": "WW: presel.",
+      "values": {
+        "cb_ltype_7": "Any",
+        "cb_op_lep_7": "==",
+        "txt_leptons_7": 1,
+        "cb_op_jet_7": ">=",
+        "txt_jets_7": 2,
+        "cb_op_phot_7": ">=",
+        "txt_photons_7": 0
+      },
+      "links": [
+        {
+          "src_nid": 0,
+          "dst_nid": 7
+        },
+        {
+          "src_nid": 7,
+          "dst_nid": 8
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 8,
+      "node_type": "Selection",
+      "pos": [
+        -1450,
+        240
+      ],
+      "name": "WW: MET pt > 5 GeV",
+      "values": {
+        "txt_sel_8": "met.pt > 5"
+      },
+      "links": [
+        {
+          "src_nid": 7,
+          "dst_nid": 8
+        },
+        {
+          "src_nid": 8,
+          "dst_nid": 9
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 9,
+      "node_type": "ObsCustom",
+      "pos": [
+        -1450,
+        390
+      ],
+      "name": "m(l1,MET,J1,J2)",
+      "values": {
+        "txt_obs_9": "(l1.p4 + met.p4 + j1.p4 + j2.p4).mass"
+      },
+      "links": [
+        {
+          "src_nid": 8,
+          "dst_nid": 9
+        },
+        {
+          "src_nid": 9,
+          "dst_nid": 10
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 10,
+      "node_type": "Histogram",
+      "pos": [
+        -1450,
+        540
+      ],
+      "name": "WW mass",
+      "values": {
+        "cb_target_10": "None",
+        "txt_bins_10": 40,
+        "txt_range_min_10": 120,
+        "txt_range_max_10": 185
+      },
+      "links": [
+        {
+          "src_nid": 9,
+          "dst_nid": 10
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 11,
+      "node_type": "DataSource",
+      "pos": [
+        -900,
+        -60
+      ],
+      "name": "CLD 365 GeV data",
+      "values": {
+        "cb_energy_11": "365 GeV",
+        "cb_detector_11": "CLD"
+      },
+      "links": [
+        {
+          "src_nid": 11,
+          "dst_nid": 12
+        },
+        {
+          "src_nid": 11,
+          "dst_nid": 18
+        },
+        {
+          "src_nid": 11,
+          "dst_nid": 24
+        },
+        {
+          "src_nid": 11,
+          "dst_nid": 31
+        },
+        {
+          "src_nid": 11,
+          "dst_nid": 38
+        },
+        {
+          "src_nid": 11,
+          "dst_nid": 43
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 12,
+      "node_type": "Multiplicity",
+      "pos": [
+        -1150,
+        90
+      ],
+      "name": "ttbar: presel.",
+      "values": {
+        "cb_ltype_12": "Any",
+        "cb_op_lep_12": ">=",
+        "txt_leptons_12": 2,
+        "cb_op_jet_12": ">=",
+        "txt_jets_12": 4,
+        "cb_op_phot_12": ">=",
+        "txt_photons_12": 0
+      },
+      "links": [
+        {
+          "src_nid": 11,
+          "dst_nid": 12
+        },
+        {
+          "src_nid": 12,
+          "dst_nid": 13
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 13,
+      "node_type": "Selection",
+      "pos": [
+        -1150,
+        240
+      ],
+      "name": "ttbar: b-tag>0.7 on j1..j4",
+      "values": {
+        "txt_sel_13": "j1.btag > 0.7 and j2.btag > 0.7 and j3.btag > 0.7 and j4.btag > 0.7"
+      },
+      "links": [
+        {
+          "src_nid": 12,
+          "dst_nid": 13
+        },
+        {
+          "src_nid": 13,
+          "dst_nid": 14
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 14,
+      "node_type": "Selection",
+      "pos": [
+        -1150,
+        390
+      ],
+      "name": "ttbar: lepton pt>20",
+      "values": {
+        "txt_sel_14": "l1.pt > 20 and l2.pt > 20"
+      },
+      "links": [
+        {
+          "src_nid": 13,
+          "dst_nid": 14
+        },
+        {
+          "src_nid": 14,
+          "dst_nid": 15
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 15,
+      "node_type": "Selection",
+      "pos": [
+        -1150,
+        540
+      ],
+      "name": "ttbar: MET pt>20",
+      "values": {
+        "txt_sel_15": "met.pt > 20"
+      },
+      "links": [
+        {
+          "src_nid": 14,
+          "dst_nid": 15
+        },
+        {
+          "src_nid": 15,
+          "dst_nid": 16
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 16,
+      "node_type": "ObsCustom",
+      "pos": [
+        -1150,
+        690
+      ],
+      "name": "(j1+met+l1).mass",
+      "values": {
+        "txt_obs_16": "(j1.p4 + met.p4 + l1.p4).mass"
+      },
+      "links": [
+        {
+          "src_nid": 15,
+          "dst_nid": 16
+        },
+        {
+          "src_nid": 16,
+          "dst_nid": 17
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 17,
+      "node_type": "Histogram",
+      "pos": [
+        -1150,
+        840
+      ],
+      "name": "ttbar mass",
+      "values": {
+        "cb_target_17": "None",
+        "txt_bins_17": 50,
+        "txt_range_min_17": 0,
+        "txt_range_max_17": 400
+      },
+      "links": [
+        {
+          "src_nid": 16,
+          "dst_nid": 17
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 18,
+      "node_type": "Multiplicity",
+      "pos": [
+        -850,
+        90
+      ],
+      "name": "e+e->ff: presel.",
+      "values": {
+        "cb_ltype_18": "Any",
+        "cb_op_lep_18": ">=",
+        "txt_leptons_18": 2,
+        "cb_op_jet_18": ">=",
+        "txt_jets_18": 4,
+        "cb_op_phot_18": ">=",
+        "txt_photons_18": 0
+      },
+      "links": [
+        {
+          "src_nid": 11,
+          "dst_nid": 18
+        },
+        {
+          "src_nid": 18,
+          "dst_nid": 19
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 19,
+      "node_type": "Selection",
+      "pos": [
+        -850,
+        240
+      ],
+      "name": "e+e->ff: b-tag<0.7 on j1,j2 (leading two)",
+      "values": {
+        "txt_sel_19": "j1.btag < 0.7 and j2.btag < 0.7"
+      },
+      "links": [
+        {
+          "src_nid": 18,
+          "dst_nid": 19
+        },
+        {
+          "src_nid": 19,
+          "dst_nid": 20
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 20,
+      "node_type": "Selection",
+      "pos": [
+        -850,
+        390
+      ],
+      "name": "e+e->ff: lepton pt>20",
+      "values": {
+        "txt_sel_20": "l1.pt > 20 and l2.pt > 20"
+      },
+      "links": [
+        {
+          "src_nid": 19,
+          "dst_nid": 20
+        },
+        {
+          "src_nid": 20,
+          "dst_nid": 21
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 21,
+      "node_type": "Selection",
+      "pos": [
+        -850,
+        540
+      ],
+      "name": "e+e->ff: 80<m(l1,l2)<100",
+      "values": {
+        "txt_sel_21": "(l1.p4 + l2.p4).mass > 80 and (l1.p4 + l2.p4).mass < 100"
+      },
+      "links": [
+        {
+          "src_nid": 20,
+          "dst_nid": 21
+        },
+        {
+          "src_nid": 21,
+          "dst_nid": 22
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 22,
+      "node_type": "ObsCustom",
+      "pos": [
+        -850,
+        690
+      ],
+      "name": "(j1+j2).mass",
+      "values": {
+        "txt_obs_22": "(j1.p4 + j2.p4).mass"
+      },
+      "links": [
+        {
+          "src_nid": 21,
+          "dst_nid": 22
+        },
+        {
+          "src_nid": 22,
+          "dst_nid": 23
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 23,
+      "node_type": "Histogram",
+      "pos": [
+        -850,
+        840
+      ],
+      "name": "e+e->ff mass",
+      "values": {
+        "cb_target_23": "None",
+        "txt_bins_23": 40,
+        "txt_range_min_23": 0,
+        "txt_range_max_23": 400
+      },
+      "links": [
+        {
+          "src_nid": 22,
+          "dst_nid": 23
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 24,
+      "node_type": "Multiplicity",
+      "pos": [
+        -550,
+        90
+      ],
+      "name": "ZZ: presel.",
+      "values": {
+        "cb_ltype_24": "Any",
+        "cb_op_lep_24": ">=",
+        "txt_leptons_24": 2,
+        "cb_op_jet_24": ">=",
+        "txt_jets_24": 2,
+        "cb_op_phot_24": ">=",
+        "txt_photons_24": 0
+      },
+      "links": [
+        {
+          "src_nid": 11,
+          "dst_nid": 24
+        },
+        {
+          "src_nid": 24,
+          "dst_nid": 25
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 25,
+      "node_type": "Selection",
+      "pos": [
+        -550,
+        240
+      ],
+      "name": "ZZ: b-tag<0.7 on j1,j2",
+      "values": {
+        "txt_sel_25": "j1.btag < 0.7 and j2.btag < 0.7"
+      },
+      "links": [
+        {
+          "src_nid": 24,
+          "dst_nid": 25
+        },
+        {
+          "src_nid": 25,
+          "dst_nid": 26
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 26,
+      "node_type": "Selection",
+      "pos": [
+        -550,
+        390
+      ],
+      "name": "ZZ: lepton/jet pt>20",
+      "values": {
+        "txt_sel_26": "l1.pt > 20 and l2.pt > 20 and j1.pt > 20 and j2.pt > 20"
+      },
+      "links": [
+        {
+          "src_nid": 25,
+          "dst_nid": 26
+        },
+        {
+          "src_nid": 26,
+          "dst_nid": 27
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 27,
+      "node_type": "Selection",
+      "pos": [
+        -550,
+        540
+      ],
+      "name": "ZZ: Z-veto on m(l1,l2)",
+      "values": {
+        "txt_sel_27": "(l1.p4 + l2.p4).mass < 80 or (l1.p4 + l2.p4).mass > 100"
+      },
+      "links": [
+        {
+          "src_nid": 26,
+          "dst_nid": 27
+        },
+        {
+          "src_nid": 27,
+          "dst_nid": 28
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 28,
+      "node_type": "Selection",
+      "pos": [
+        -550,
+        690
+      ],
+      "name": "ZZ: MET pt<20",
+      "values": {
+        "txt_sel_28": "met.pt < 20"
+      },
+      "links": [
+        {
+          "src_nid": 27,
+          "dst_nid": 28
+        },
+        {
+          "src_nid": 28,
+          "dst_nid": 29
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 29,
+      "node_type": "ObsCustom",
+      "pos": [
+        -550,
+        840
+      ],
+      "name": "(j1+j2).mass",
+      "values": {
+        "txt_obs_29": "(j1.p4 + j2.p4).mass"
+      },
+      "links": [
+        {
+          "src_nid": 28,
+          "dst_nid": 29
+        },
+        {
+          "src_nid": 29,
+          "dst_nid": 30
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 30,
+      "node_type": "Histogram",
+      "pos": [
+        -550,
+        990
+      ],
+      "name": "ZZ mass (X5)",
+      "values": {
+        "cb_target_30": "None",
+        "txt_bins_30": 40,
+        "txt_range_min_30": 0,
+        "txt_range_max_30": 400
+      },
+      "links": [
+        {
+          "src_nid": 29,
+          "dst_nid": 30
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 31,
+      "node_type": "Multiplicity",
+      "pos": [
+        -250,
+        90
+      ],
+      "name": "ZH: presel.",
+      "values": {
+        "cb_ltype_31": "Any",
+        "cb_op_lep_31": ">=",
+        "txt_leptons_31": 2,
+        "cb_op_jet_31": ">=",
+        "txt_jets_31": 2,
+        "cb_op_phot_31": ">=",
+        "txt_photons_31": 0
+      },
+      "links": [
+        {
+          "src_nid": 11,
+          "dst_nid": 31
+        },
+        {
+          "src_nid": 31,
+          "dst_nid": 32
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 32,
+      "node_type": "Selection",
+      "pos": [
+        -250,
+        240
+      ],
+      "name": "ZH: b-tag>0.7 on j1,j2",
+      "values": {
+        "txt_sel_32": "j1.btag > 0.7 and j2.btag > 0.7"
+      },
+      "links": [
+        {
+          "src_nid": 31,
+          "dst_nid": 32
+        },
+        {
+          "src_nid": 32,
+          "dst_nid": 33
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 33,
+      "node_type": "Selection",
+      "pos": [
+        -250,
+        390
+      ],
+      "name": "ZH: lepton/jet pt>20",
+      "values": {
+        "txt_sel_33": "l1.pt > 20 and l2.pt > 20 and j1.pt > 20 and j2.pt > 20"
+      },
+      "links": [
+        {
+          "src_nid": 32,
+          "dst_nid": 33
+        },
+        {
+          "src_nid": 33,
+          "dst_nid": 34
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 34,
+      "node_type": "Selection",
+      "pos": [
+        -250,
+        540
+      ],
+      "name": "ZH: 80<m(l1,l2)<100",
+      "values": {
+        "txt_sel_34": "(l1.p4 + l2.p4).mass > 80 and (l1.p4 + l2.p4).mass < 100"
+      },
+      "links": [
+        {
+          "src_nid": 33,
+          "dst_nid": 34
+        },
+        {
+          "src_nid": 34,
+          "dst_nid": 35
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 35,
+      "node_type": "Selection",
+      "pos": [
+        -250,
+        690
+      ],
+      "name": "ZH: MET pt<10",
+      "values": {
+        "txt_sel_35": "met.pt < 10"
+      },
+      "links": [
+        {
+          "src_nid": 34,
+          "dst_nid": 35
+        },
+        {
+          "src_nid": 35,
+          "dst_nid": 36
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 36,
+      "node_type": "ObsCustom",
+      "pos": [
+        -250,
+        840
+      ],
+      "name": "(j1+j2).mass",
+      "values": {
+        "txt_obs_36": "(j1.p4 + j2.p4).mass"
+      },
+      "links": [
+        {
+          "src_nid": 35,
+          "dst_nid": 36
+        },
+        {
+          "src_nid": 36,
+          "dst_nid": 37
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 37,
+      "node_type": "Histogram",
+      "pos": [
+        -250,
+        990
+      ],
+      "name": "ZH mass",
+      "values": {
+        "cb_target_37": "None",
+        "txt_bins_37": 40,
+        "txt_range_min_37": 0,
+        "txt_range_max_37": 400
+      },
+      "links": [
+        {
+          "src_nid": 36,
+          "dst_nid": 37
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 38,
+      "node_type": "Multiplicity",
+      "pos": [
+        50,
+        90
+      ],
+      "name": "WW(365): presel.",
+      "values": {
+        "cb_ltype_38": "Any",
+        "cb_op_lep_38": ">=",
+        "txt_leptons_38": 0,
+        "cb_op_jet_38": ">=",
+        "txt_jets_38": 2,
+        "cb_op_phot_38": ">=",
+        "txt_photons_38": 0
+      },
+      "links": [
+        {
+          "src_nid": 11,
+          "dst_nid": 38
+        },
+        {
+          "src_nid": 38,
+          "dst_nid": 39
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 39,
+      "node_type": "Selection",
+      "pos": [
+        50,
+        240
+      ],
+      "name": "WW(365): b-tag<0.7 on j1,j2",
+      "values": {
+        "txt_sel_39": "j1.btag < 0.7 and j2.btag < 0.7"
+      },
+      "links": [
+        {
+          "src_nid": 38,
+          "dst_nid": 39
+        },
+        {
+          "src_nid": 39,
+          "dst_nid": 40
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 40,
+      "node_type": "Selection",
+      "pos": [
+        50,
+        390
+      ],
+      "name": "WW(365): lepton/jet pt>20 (talk also says >=0 leptons -- kept as-is)",
+      "values": {
+        "txt_sel_40": "l1.pt > 20 and j1.pt > 20 and j2.pt > 20"
+      },
+      "links": [
+        {
+          "src_nid": 39,
+          "dst_nid": 40
+        },
+        {
+          "src_nid": 40,
+          "dst_nid": 41
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 41,
+      "node_type": "ObsCustom",
+      "pos": [
+        50,
+        540
+      ],
+      "name": "m(l1,MET)",
+      "values": {
+        "txt_obs_41": "(l1.p4 + met.p4).mass"
+      },
+      "links": [
+        {
+          "src_nid": 40,
+          "dst_nid": 41
+        },
+        {
+          "src_nid": 41,
+          "dst_nid": 42
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 42,
+      "node_type": "Histogram",
+      "pos": [
+        50,
+        690
+      ],
+      "name": "WW(365) mass",
+      "values": {
+        "cb_target_42": "None",
+        "txt_bins_42": 40,
+        "txt_range_min_42": 0,
+        "txt_range_max_42": 220
+      },
+      "links": [
+        {
+          "src_nid": 41,
+          "dst_nid": 42
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 43,
+      "node_type": "Multiplicity",
+      "pos": [
+        400,
+        90
+      ],
+      "name": "New Physics: presel.",
+      "values": {
+        "cb_ltype_43": "Electron",
+        "cb_op_lep_43": ">=",
+        "txt_leptons_43": 2,
+        "cb_op_jet_43": ">=",
+        "txt_jets_43": 4,
+        "cb_op_phot_43": ">=",
+        "txt_photons_43": 0
+      },
+      "links": [
+        {
+          "src_nid": 11,
+          "dst_nid": 43
+        },
+        {
+          "src_nid": 43,
+          "dst_nid": 44
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 44,
+      "node_type": "Selection",
+      "pos": [
+        400,
+        240
+      ],
+      "name": "New Physics: nlep>=2",
+      "values": {
+        "txt_sel_44": "nlep >= 2"
+      },
+      "links": [
+        {
+          "src_nid": 43,
+          "dst_nid": 44
+        },
+        {
+          "src_nid": 44,
+          "dst_nid": 45
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 45,
+      "node_type": "Selection",
+      "pos": [
+        400,
+        390
+      ],
+      "name": "New Physics: njets>2",
+      "values": {
+        "txt_sel_45": "njets > 2"
+      },
+      "links": [
+        {
+          "src_nid": 44,
+          "dst_nid": 45
+        },
+        {
+          "src_nid": 45,
+          "dst_nid": 46
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 46,
+      "node_type": "Selection",
+      "pos": [
+        400,
+        540
+      ],
+      "name": "New Physics: MET<5, Z-veto on m(l1,l2)",
+      "values": {
+        "txt_sel_46": "met.pt < 5 and ((l1.p4 + l2.p4).mass < 80 or (l1.p4 + l2.p4).mass > 100)"
+      },
+      "links": [
+        {
+          "src_nid": 45,
+          "dst_nid": 46
+        },
+        {
+          "src_nid": 46,
+          "dst_nid": 47
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 47,
+      "node_type": "Selection",
+      "pos": [
+        400,
+        690
+      ],
+      "name": "New Physics: b-veto on j1..j4",
+      "values": {
+        "txt_sel_47": "j1.btag < 0.7 and j2.btag < 0.7 and j3.btag < 0.7 and j4.btag < 0.7"
+      },
+      "links": [
+        {
+          "src_nid": 46,
+          "dst_nid": 47
+        },
+        {
+          "src_nid": 47,
+          "dst_nid": 48
+        },
+        {
+          "src_nid": 47,
+          "dst_nid": 49
+        },
+        {
+          "src_nid": 47,
+          "dst_nid": 50
+        },
+        {
+          "src_nid": 47,
+          "dst_nid": 51
+        },
+        {
+          "src_nid": 47,
+          "dst_nid": 52
+        },
+        {
+          "src_nid": 47,
+          "dst_nid": 53
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 48,
+      "node_type": "ObsCustom",
+      "pos": [
+        650,
+        650
+      ],
+      "name": "PRIMARY: (j1+j2+j3+j4+l1+l2).mass -- slide 17 observable",
+      "values": {
+        "txt_obs_48": "(j1.p4 + j2.p4 + j3.p4 + j4.p4 + l1.p4 + l2.p4).mass"
+      },
+      "links": [
+        {
+          "src_nid": 47,
+          "dst_nid": 48
+        },
+        {
+          "src_nid": 48,
+          "dst_nid": 54
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 49,
+      "node_type": "ObsObject",
+      "pos": [
+        650,
+        750
+      ],
+      "name": "l1.pt+l2.pt",
+      "values": {
+        "obs_o_obj_49_0": "l1",
+        "obs_o_var_49_0": "pt",
+        "obs_o_obj_49_1": "l2",
+        "obs_o_var_49_1": "pt",
+        "obs_expr_49": "l1.pt + l2.pt"
+      },
+      "links": [
+        {
+          "src_nid": 47,
+          "dst_nid": 49
+        },
+        {
+          "src_nid": 49,
+          "dst_nid": 54
+        }
+      ],
+      "obs_row_count": 2
+    },
+    {
+      "type": "node",
+      "nid": 50,
+      "node_type": "ObsCustom",
+      "pos": [
+        650,
+        850
+      ],
+      "name": "pairing: (j1+j2+l1).mass",
+      "values": {
+        "txt_obs_50": "(j1.p4 + j2.p4 + l1.p4).mass"
+      },
+      "links": [
+        {
+          "src_nid": 47,
+          "dst_nid": 50
+        },
+        {
+          "src_nid": 50,
+          "dst_nid": 54
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 51,
+      "node_type": "ObsCustom",
+      "pos": [
+        650,
+        950
+      ],
+      "name": "pairing: (j1+j2+l2).mass",
+      "values": {
+        "txt_obs_51": "(j1.p4 + j2.p4 + l2.p4).mass"
+      },
+      "links": [
+        {
+          "src_nid": 47,
+          "dst_nid": 51
+        },
+        {
+          "src_nid": 51,
+          "dst_nid": 54
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 52,
+      "node_type": "ObsCustom",
+      "pos": [
+        650,
+        1050
+      ],
+      "name": "pairing: (j1+j3+l1).mass",
+      "values": {
+        "txt_obs_52": "(j1.p4 + j3.p4 + l1.p4).mass"
+      },
+      "links": [
+        {
+          "src_nid": 47,
+          "dst_nid": 52
+        },
+        {
+          "src_nid": 52,
+          "dst_nid": 54
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 53,
+      "node_type": "ObsCustom",
+      "pos": [
+        650,
+        1150
+      ],
+      "name": "pairing: (j1+j3+l2).mass",
+      "values": {
+        "txt_obs_53": "(j1.p4 + j3.p4 + l2.p4).mass"
+      },
+      "links": [
+        {
+          "src_nid": 47,
+          "dst_nid": 53
+        },
+        {
+          "src_nid": 53,
+          "dst_nid": 54
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 54,
+      "node_type": "Histogram",
+      "pos": [
+        950,
+        900
+      ],
+      "name": "New Physics fit",
+      "values": {
+        "cb_target_54": "New Physics",
+        "txt_bins_54": 40,
+        "txt_range_min_54": 0.0,
+        "txt_range_max_54": 400.0
+      },
+      "links": [
+        {
+          "src_nid": 48,
+          "dst_nid": 54
+        },
+        {
+          "src_nid": 49,
+          "dst_nid": 54
+        },
+        {
+          "src_nid": 50,
+          "dst_nid": 54
+        },
+        {
+          "src_nid": 51,
+          "dst_nid": 54
+        },
+        {
+          "src_nid": 52,
+          "dst_nid": 54
+        },
+        {
+          "src_nid": 53,
+          "dst_nid": 54
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 55,
+      "node_type": "DataSource",
+      "pos": [
+        1100,
+        -60
+      ],
+      "name": "CLD 91 GeV data",
+      "values": {
+        "cb_energy_55": "91 GeV",
+        "cb_detector_55": "CLD"
+      },
+      "links": [
+        {
+          "src_nid": 55,
+          "dst_nid": 56
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 56,
+      "node_type": "Multiplicity",
+      "pos": [
+        1100,
+        90
+      ],
+      "name": "HNL search: presel.",
+      "values": {
+        "cb_ltype_56": "Any",
+        "cb_op_lep_56": ">=",
+        "txt_leptons_56": 1,
+        "cb_op_jet_56": ">=",
+        "txt_jets_56": 1,
+        "cb_op_phot_56": ">=",
+        "txt_photons_56": 0
+      },
+      "links": [
+        {
+          "src_nid": 55,
+          "dst_nid": 56
+        },
+        {
+          "src_nid": 56,
+          "dst_nid": 57
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 57,
+      "node_type": "Selection",
+      "pos": [
+        1100,
+        240
+      ],
+      "name": "HNL search: MET pt>3 GeV",
+      "values": {
+        "txt_sel_57": "met.pt > 3"
+      },
+      "links": [
+        {
+          "src_nid": 56,
+          "dst_nid": 57
+        },
+        {
+          "src_nid": 57,
+          "dst_nid": 58
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 58,
+      "node_type": "Selection",
+      "pos": [
+        1100,
+        390
+      ],
+      "name": "HNL search: |d0(l1)|<500",
+      "values": {
+        "txt_sel_58": "abs(l1.d0) < 500"
+      },
+      "links": [
+        {
+          "src_nid": 57,
+          "dst_nid": 58
+        },
+        {
+          "src_nid": 58,
+          "dst_nid": 59
+        },
+        {
+          "src_nid": 58,
+          "dst_nid": 61
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 59,
+      "node_type": "ObsCustom",
+      "pos": [
+        950,
+        540
+      ],
+      "name": "m(J1,l1) -- slide 14",
+      "values": {
+        "txt_obs_59": "(j1.p4 + l1.p4).mass"
+      },
+      "links": [
+        {
+          "src_nid": 58,
+          "dst_nid": 59
+        },
+        {
+          "src_nid": 59,
+          "dst_nid": 60
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 60,
+      "node_type": "Histogram",
+      "pos": [
+        950,
+        690
+      ],
+      "name": "HNL mass fit",
+      "values": {
+        "cb_target_60": "New Physics",
+        "txt_bins_60": 12,
+        "txt_range_min_60": 8.0,
+        "txt_range_max_60": 62.0
+      },
+      "links": [
+        {
+          "src_nid": 59,
+          "dst_nid": 60
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 61,
+      "node_type": "ObsCustom",
+      "pos": [
+        1250,
+        540
+      ],
+      "name": "met.pt -- slide 16 cross-check",
+      "values": {
+        "txt_obs_61": "met.pt"
+      },
+      "links": [
+        {
+          "src_nid": 58,
+          "dst_nid": 61
+        },
+        {
+          "src_nid": 61,
+          "dst_nid": 62
+        }
+      ],
+      "obs_row_count": null
+    },
+    {
+      "type": "node",
+      "nid": 62,
+      "node_type": "Histogram",
+      "pos": [
+        1250,
+        690
+      ],
+      "name": "HNL met.pt fit",
+      "values": {
+        "cb_target_62": "New Physics",
+        "txt_bins_62": 11,
+        "txt_range_min_62": 0.0,
+        "txt_range_max_62": 41.0
+      },
+      "links": [
+        {
+          "src_nid": 61,
+          "dst_nid": 62
+        }
+      ],
+      "obs_row_count": null
+    }
+  ],
+  "links": [
+    {
+      "type": "link",
+      "src_nid": 0,
+      "dst_nid": 1
+    },
+    {
+      "type": "link",
+      "src_nid": 1,
+      "dst_nid": 2
+    },
+    {
+      "type": "link",
+      "src_nid": 2,
+      "dst_nid": 3
+    },
+    {
+      "type": "link",
+      "src_nid": 3,
+      "dst_nid": 4
+    },
+    {
+      "type": "link",
+      "src_nid": 4,
+      "dst_nid": 5
+    },
+    {
+      "type": "link",
+      "src_nid": 5,
+      "dst_nid": 6
+    },
+    {
+      "type": "link",
+      "src_nid": 0,
+      "dst_nid": 7
+    },
+    {
+      "type": "link",
+      "src_nid": 7,
+      "dst_nid": 8
+    },
+    {
+      "type": "link",
+      "src_nid": 8,
+      "dst_nid": 9
+    },
+    {
+      "type": "link",
+      "src_nid": 9,
+      "dst_nid": 10
+    },
+    {
+      "type": "link",
+      "src_nid": 11,
+      "dst_nid": 12
+    },
+    {
+      "type": "link",
+      "src_nid": 12,
+      "dst_nid": 13
+    },
+    {
+      "type": "link",
+      "src_nid": 13,
+      "dst_nid": 14
+    },
+    {
+      "type": "link",
+      "src_nid": 14,
+      "dst_nid": 15
+    },
+    {
+      "type": "link",
+      "src_nid": 15,
+      "dst_nid": 16
+    },
+    {
+      "type": "link",
+      "src_nid": 16,
+      "dst_nid": 17
+    },
+    {
+      "type": "link",
+      "src_nid": 11,
+      "dst_nid": 18
+    },
+    {
+      "type": "link",
+      "src_nid": 18,
+      "dst_nid": 19
+    },
+    {
+      "type": "link",
+      "src_nid": 19,
+      "dst_nid": 20
+    },
+    {
+      "type": "link",
+      "src_nid": 20,
+      "dst_nid": 21
+    },
+    {
+      "type": "link",
+      "src_nid": 21,
+      "dst_nid": 22
+    },
+    {
+      "type": "link",
+      "src_nid": 22,
+      "dst_nid": 23
+    },
+    {
+      "type": "link",
+      "src_nid": 11,
+      "dst_nid": 24
+    },
+    {
+      "type": "link",
+      "src_nid": 24,
+      "dst_nid": 25
+    },
+    {
+      "type": "link",
+      "src_nid": 25,
+      "dst_nid": 26
+    },
+    {
+      "type": "link",
+      "src_nid": 26,
+      "dst_nid": 27
+    },
+    {
+      "type": "link",
+      "src_nid": 27,
+      "dst_nid": 28
+    },
+    {
+      "type": "link",
+      "src_nid": 28,
+      "dst_nid": 29
+    },
+    {
+      "type": "link",
+      "src_nid": 29,
+      "dst_nid": 30
+    },
+    {
+      "type": "link",
+      "src_nid": 11,
+      "dst_nid": 31
+    },
+    {
+      "type": "link",
+      "src_nid": 31,
+      "dst_nid": 32
+    },
+    {
+      "type": "link",
+      "src_nid": 32,
+      "dst_nid": 33
+    },
+    {
+      "type": "link",
+      "src_nid": 33,
+      "dst_nid": 34
+    },
+    {
+      "type": "link",
+      "src_nid": 34,
+      "dst_nid": 35
+    },
+    {
+      "type": "link",
+      "src_nid": 35,
+      "dst_nid": 36
+    },
+    {
+      "type": "link",
+      "src_nid": 36,
+      "dst_nid": 37
+    },
+    {
+      "type": "link",
+      "src_nid": 11,
+      "dst_nid": 38
+    },
+    {
+      "type": "link",
+      "src_nid": 38,
+      "dst_nid": 39
+    },
+    {
+      "type": "link",
+      "src_nid": 39,
+      "dst_nid": 40
+    },
+    {
+      "type": "link",
+      "src_nid": 40,
+      "dst_nid": 41
+    },
+    {
+      "type": "link",
+      "src_nid": 41,
+      "dst_nid": 42
+    },
+    {
+      "type": "link",
+      "src_nid": 11,
+      "dst_nid": 43
+    },
+    {
+      "type": "link",
+      "src_nid": 43,
+      "dst_nid": 44
+    },
+    {
+      "type": "link",
+      "src_nid": 44,
+      "dst_nid": 45
+    },
+    {
+      "type": "link",
+      "src_nid": 45,
+      "dst_nid": 46
+    },
+    {
+      "type": "link",
+      "src_nid": 46,
+      "dst_nid": 47
+    },
+    {
+      "type": "link",
+      "src_nid": 47,
+      "dst_nid": 48
+    },
+    {
+      "type": "link",
+      "src_nid": 48,
+      "dst_nid": 54
+    },
+    {
+      "type": "link",
+      "src_nid": 47,
+      "dst_nid": 49
+    },
+    {
+      "type": "link",
+      "src_nid": 49,
+      "dst_nid": 54
+    },
+    {
+      "type": "link",
+      "src_nid": 47,
+      "dst_nid": 50
+    },
+    {
+      "type": "link",
+      "src_nid": 50,
+      "dst_nid": 54
+    },
+    {
+      "type": "link",
+      "src_nid": 47,
+      "dst_nid": 51
+    },
+    {
+      "type": "link",
+      "src_nid": 51,
+      "dst_nid": 54
+    },
+    {
+      "type": "link",
+      "src_nid": 47,
+      "dst_nid": 52
+    },
+    {
+      "type": "link",
+      "src_nid": 52,
+      "dst_nid": 54
+    },
+    {
+      "type": "link",
+      "src_nid": 47,
+      "dst_nid": 53
+    },
+    {
+      "type": "link",
+      "src_nid": 53,
+      "dst_nid": 54
+    },
+    {
+      "type": "link",
+      "src_nid": 55,
+      "dst_nid": 56
+    },
+    {
+      "type": "link",
+      "src_nid": 56,
+      "dst_nid": 57
+    },
+    {
+      "type": "link",
+      "src_nid": 57,
+      "dst_nid": 58
+    },
+    {
+      "type": "link",
+      "src_nid": 58,
+      "dst_nid": 59
+    },
+    {
+      "type": "link",
+      "src_nid": 59,
+      "dst_nid": 60
+    },
+    {
+      "type": "link",
+      "src_nid": 58,
+      "dst_nid": 61
+    },
+    {
+      "type": "link",
+      "src_nid": 61,
+      "dst_nid": 62
+    }
+  ]
+}
