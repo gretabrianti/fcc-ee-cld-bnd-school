@@ -109,7 +109,7 @@ def single_histogram_plot(values, xrange, xlabel, energy_gev, outpath, colour_ke
 
     plot = puma.HistogramPlot(
         **style.puma_kwargs(
-            energy_gev, ylabel="toy events / bin", xlabel=xlabel, figsize=(6, 5),
+            energy_gev, ylabel="Toy events / bin", xlabel=xlabel, figsize=(6, 5),
             leg_loc="upper right" if vline is None else "lower right",
         )
     )
@@ -141,7 +141,7 @@ def pairing_comparison_plot(naive_values, constrained_values, xrange, xlabel, en
     constrained_counts, _ = np.histogram(constrained_values, bins=edges)
 
     plot = puma.HistogramPlot(
-        **style.puma_kwargs(energy_gev, ylabel="toy events / bin", xlabel=xlabel,
+        **style.puma_kwargs(energy_gev, ylabel="Toy events / bin", xlabel=xlabel,
                              figsize=(6, 5), leg_loc="upper right")
     )
     plot.add(
@@ -220,14 +220,20 @@ def significance_hierarchy_plot(n_obs, event_topology, quoted_sigmas, energy_gev
     ax.text(b_scan[-1], 5.1, "5$\\sigma$ discovery", fontsize=8, ha="right")
     ax.axhline(3, color="gray", ls="--", lw=1)
     ax.text(b_scan[-1], 3.1, "3$\\sigma$ evidence", fontsize=8, ha="right")
+    single = len(quoted_sigmas) == 1
     for name, val in quoted_sigmas.items():
-        ax.axhline(val, color=style.PALETTE["h1"], ls=":", lw=1.2, alpha=0.8)
-        ax.text(b_scan[-1], val + 0.15, f"quoted: {name} = {val}$\\sigma$", fontsize=7.5,
-                color=style.PALETTE["h1"], ha="right")
+        if single:
+            ax.axhline(val, color="red", ls="-", lw=1.8)
+            ax.text(b_scan[-1], val + 0.15, f"{val}$\\sigma$", fontsize=11,
+                    color="red", ha="right", fontweight="bold")
+        else:
+            ax.axhline(val, color=style.PALETTE["h1"], ls=":", lw=1.2, alpha=0.8)
+            ax.text(b_scan[-1], val + 0.15, f"quoted: {name} = {val}$\\sigma$", fontsize=7.5,
+                    color=style.PALETTE["h1"], ha="right")
     ax.set_xlim(b_scan[0], b_scan[-1])
     ax.set_ylim(0, max([z1, *quoted_sigmas.values()]) * 1.3)
-    ax.set_xlabel(r"assumed background yield $b$ [events]")
-    ax.set_ylabel("recomputed discovery significance")
+    ax.set_xlabel(r"Assumed background yield $b$ [events]")
+    ax.set_ylabel("Recomputed discovery significance")
     ax.legend(fontsize=7, loc="lower left")
     style.cld_atlasify(ax, energy_gev)
     style.annotate_note(ax, rf"observed $n$ = {n_obs:.0f} events")

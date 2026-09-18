@@ -115,7 +115,7 @@ def cutflow_bar_plot(proc_label, colour_key, cuts, energy_gev, outpath):
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=9)
     ax.set_ylim(0, 1.2)
-    ax.set_ylabel("cumulative efficiency (toy, assumed per cut)")
+    ax.set_ylabel("Cumulative efficiency (toy, assumed per cut)")
     ax.legend(fontsize=9, loc="upper right")
     style.cld_atlasify(ax, energy_gev)
     style.savefig(fig, outpath)
@@ -233,7 +233,7 @@ def lepton_pt_turnon_plot(outpath):
     plot = puma.VarVsEffPlot(
         mode="sig_eff",
         **style.puma_kwargs(
-            "160 & 365", xlabel="true lepton $p_T$ [GeV]", ylabel="efficiency of $p_T$ > 20 GeV cut",
+            "160 & 365", xlabel="True lepton $p_T$ [GeV]", ylabel="Efficiency of $p_T$ > 20 GeV cut",
             figsize=(6, 5), grid=True, logy=False, ymin=0, ymax=1.15,
         ),
     )
@@ -263,7 +263,7 @@ def btag_efficiency_comparison_plot(outpath):
            color=[style.PALETTE["X1"], style.PALETTE["X3"]], capsize=6, width=0.5)
     ax.axhline(nominal_eff, color="gray", ls=":", lw=1)
     ax.set_ylim(0, 1.05)
-    ax.set_ylabel(rf"b-tag efficiency at WP={sl.BTAG_WP} (toy, $\pm${sl.BTAG_PER_BJET*100:.0f}% syst./b-jet)")
+    ax.set_ylabel(rf"B-tag efficiency at WP={sl.BTAG_WP} (toy, $\pm${sl.BTAG_PER_BJET*100:.0f}% syst./b-jet)")
     style.cld_atlasify(ax, "160 & 365")
     style.savefig(fig, outpath)
     plt.close(fig)
@@ -278,7 +278,7 @@ def gap_panel(labels, fractions, energy_gev, outpath, note=None):
     fig, ax = plt.subplots(figsize=(6, 4.5))
     colours = list(style.PALETTE.values())[: len(labels)]
     ax.barh(labels, fractions, color=colours)
-    ax.set_xlabel("hypothesised / expected fraction [%]")
+    ax.set_xlabel("Hypothesised / expected fraction [%]")
     style.cld_atlasify(ax, energy_gev)
     style.savefig(fig, outpath)
     plt.close(fig)
