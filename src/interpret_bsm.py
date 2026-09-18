@@ -39,7 +39,6 @@ from toygen import (
     counting_significance,
     poisson_excess_significance,
     significance_with_bkg_uncertainty,
-    global_significance,
     chi2_between,
     met_like,
     three_way_pairing_toy,
@@ -174,8 +173,7 @@ def pairing_comparison_plot(naive_values, constrained_values, xrange, xlabel, en
 #    "validate or invalidate the BSM claim" check.
 # ---------------------------------------------------------------------------
 
-def significance_hierarchy_plot(n_obs, event_topology, quoted_sigmas, energy_gev, outpath,
-                                 n_trials=8):
+def significance_hierarchy_plot(n_obs, event_topology, quoted_sigmas, energy_gev, outpath):
     """Significance-vs-assumed-background scan, instead of a single bar per
     tier: with n_obs fixed at the (digitised) reported pseudo-data sum, the
     background yield b is not reliably known from the slides, so we scan it
@@ -185,15 +183,10 @@ def significance_hierarchy_plot(n_obs, event_topology, quoted_sigmas, energy_gev
     with that quoted number -- this is the actual validation: do the quoted
     numbers correspond to a *plausible* background yield, given n_obs?
 
-    A 4th curve adds the look-elsewhere ("global") correction to Tier 3 --
-    the first check any referee would make on a claimed discovery -- using a
-    conservative Bonferroni trials factor (toygen.global_significance).
-    n_trials=8 by default: 4 energy working points x ~2 independent
-    kinematic observables searched for an excess at each (a mass-like
-    variable and MET), which is how many places this analysis actually
-    looked, per the talk -- not a rigorous trials count (that needs the
-    Gross-Vitells treatment of the actual search windows/binning), but a
-    defensible order-of-magnitude estimate.
+    No look-elsewhere / global-significance correction is applied here: that
+    requires the actual number of independent search trials from the real
+    analysis, which is not available from the talk or the analysis code.
+    Do not add one back in without that number.
 
     event_topology: dict(n_jets=, n_el=, n_mu=, n_bjets=) representative of
     the selection, used to combine the fce_studio systematics into sigma_b.
@@ -206,7 +199,6 @@ def significance_hierarchy_plot(n_obs, event_topology, quoted_sigmas, energy_gev
     z1 = counting_significance(n_obs)  # independent of b
     z2 = np.array([poisson_excess_significance(n_obs, b) for b in b_scan])
     z3 = np.array([significance_with_bkg_uncertainty(n_obs, b, b * rel_unc) for b in b_scan])
-    z4 = np.array([global_significance(z, n_trials) for z in z3])
 
     fig, ax = plt.subplots(figsize=(6, 4.5))
     ax.axhline(z1, color=style.PALETTE["X4"], lw=1.8,
@@ -214,8 +206,6 @@ def significance_hierarchy_plot(n_obs, event_topology, quoted_sigmas, energy_gev
     ax.plot(b_scan, z2, color=style.PALETTE["X2"], lw=1.8, label="Tier 2: Poisson-Asimov, exact $b$")
     ax.plot(b_scan, z3, color=style.PALETTE["X1"], lw=1.8,
             label=rf"Tier 3: Asimov w/ bkg unc. ($\pm${rel_unc*100:.1f}% on $b$)")
-    ax.plot(b_scan, z4, color=style.PALETTE["h1"], lw=1.8, ls="--",
-            label=rf"Tier 3, global ($N_{{trials}}$={n_trials} look-elsewhere)")
     ax.axhline(5, color="black", ls="-", lw=1)
     ax.text(b_scan[-1], 5.1, "5$\\sigma$ discovery", fontsize=8, ha="right")
     ax.axhline(3, color="gray", ls="--", lw=1)
@@ -233,7 +223,7 @@ def significance_hierarchy_plot(n_obs, event_topology, quoted_sigmas, energy_gev
     style.annotate_note(ax, rf"observed $n$ = {n_obs:.0f} events")
     style.savefig(fig, outpath)
     plt.close(fig)
-    return dict(z_counting=float(z1), rel_unc=rel_unc, n_obs=n_obs, n_trials=n_trials)
+    return dict(z_counting=float(z1), rel_unc=rel_unc, n_obs=n_obs)
 
 
 # ---------------------------------------------------------------------------
@@ -449,7 +439,20 @@ def print_human_action_items():
         "4. sigma_b in the significance-hierarchy plots is built from generic\n"
         "   representative object multiplicities (n_jets, n_el, n_mu, n_bjets),\n"
         "   not the real per-event values. Replace with the real selection's\n"
-        "   average multiplicities for a precise number.\n"
+        "   average multiplicities for a precise number."
+    )
+    print(
+        "5. A look-elsewhere (global) correction requires the actual number of\n"
+        "   independent search trials and is not fixed here -- no trials factor\n"
+        "   is assumed or applied anywhere in this repo. The significance-\n"
+        "   hierarchy plots show only local significance vs. an assumed b."
+    )
+    print(
+        "6. The 365 GeV background level is not established: the small flat\n"
+        "   level used in the completeness plot (interpret_sm.py) is an\n"
+        "   illustrative assumption, unrelated to wherever the quoted 6.46sigma\n"
+        "   actually came from in the real analysis. Do not treat either number\n"
+        "   as a validated background estimate.\n"
     )
     print("=" * 72)
 
