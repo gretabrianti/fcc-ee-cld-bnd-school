@@ -1,32 +1,44 @@
 """
 Task B interpretation: BSM (Heavy Neutral Lepton) claims at 91 GeV and 365 GeV.
 
-For each energy point this script:
-  1. builds a toy of the claimed HNL hypothesis at the reported mass, and
-     checks that its shape is compatible with the reported excess/peak;
-  2. builds one or two toy *alternative* hypotheses (pure combinatorial
-     background, or a different mass point) and shows they do NOT reproduce
-     the reported shape, as a discriminating cross-check;
-  3. prints out explicit callouts for things that only the team can resolve
-     with the real fit (e.g. the significance is quoted as 3 different
-     numbers across slides 14 and 16 -- 5.79 sigma in the fit box, "7.8 sigma"
-     in the text, "7 sigma" as the slide 16 headline).
+Every figure is written to its own file under figures/bsm/, dpi=200, no plot
+titles, styled with `puma` (CLD badge). See CODE_EXPLAINED.md for what each
+figure means and how to read it.
 
-Figures written to figures/bsm/.
+For each energy point this script:
+  1. builds a toy of the claimed HNL hypothesis at the reported mass and
+     compares it, together with a toy "wrong hypothesis", to the reported
+     pseudo-data -- a shape-level validation;
+  2. independently recomputes the discovery significance from the reported
+     pseudo-data under three different statistical treatments (see
+     toygen.py for why there are three) and checks whether the excess still
+     clears the discovery/evidence thresholds under the most conservative
+     one -- a statistical validation of whether the claim holds up;
+  3. prints the human action items that can't be resolved from the slides
+     alone.
 """
 from __future__ import annotations
 
+import logging
 import os
 
 import matplotlib.pyplot as plt
 import numpy as np
+import puma
 
-from style import apply_base_style, fce_header, PALETTE
+logging.getLogger("puma").setLevel(logging.ERROR)
+
+import slide_readings as sl
+import style
+from interpret_sm import edges_from_centers
 from toygen import (
     relativistic_bw_resonance,
     combinatorial_background,
     wrong_pairing_smear,
-    rng,
+    background_relative_uncertainty,
+    counting_significance,
+    poisson_excess_significance,
+    significance_with_bkg_uncertainty,
 )
 
 FIGDIR = os.path.join(os.path.dirname(__file__), "..", "figures", "bsm")
@@ -34,159 +46,202 @@ os.makedirs(FIGDIR, exist_ok=True)
 
 
 # ---------------------------------------------------------------------------
-# 91 GeV: HNL hypothesis, m ~ 40 GeV, reconstructed in m(J1, l1)
+# 1) Shape-level hypothesis tests: H0 (claimed BSM hypothesis) vs H1
+#    (plausible wrong hypothesis) vs reported pseudo-data, with a proper
+#    Data/H0 ratio panel.
 # ---------------------------------------------------------------------------
 
-def hnl_91gev(outpath):
-    apply_base_style()
-    fig, ax = plt.subplots(figsize=(8, 5.5))
+def hypothesis_test_plot(h0_values, h1_values, data_centers, data_values, xlabel,
+                          h0_label, h1_label, energy_gev, outpath):
+    edges = edges_from_centers(data_centers)
+    n_bins = len(data_centers)
 
-    xrange = (8, 62)
-    bins = np.linspace(*xrange, 12)
-    centers = 0.5 * (bins[:-1] + bins[1:])
+    h0_raw, _ = np.histogram(h0_values, bins=edges)
+    h1_raw, _ = np.histogram(h1_values, bins=edges)
+    total_data = data_values.sum()
+    h0_counts = h0_raw * (total_data / h0_raw.sum()) if h0_raw.sum() > 0 else np.zeros(n_bins)
+    h1_counts = h1_raw * (total_data / h1_raw.sum()) if h1_raw.sum() > 0 else np.zeros(n_bins)
 
-    # reported pseudo-data, read off slide 14 (approximate)
-    reported = np.array([0, 0, 1, 2, 5, 6, 2, 7, 2, 3, 3])
+    plot = puma.HistogramPlot(
+        **style.puma_kwargs(
+            energy_gev, n_ratio_panels=1, ylabel="Events / bin",
+            ylabel_ratio=["Data / H0"], xlabel=xlabel, figsize=(6.5, 5.5),
+            leg_loc="upper right", ymin_ratio=[0], ymax_ratio=[3],
+        )
+    )
+    plot.add(
+        puma.Histogram(values=h0_counts, bin_edges=edges, norm=False, histtype="step",
+                        colour=style.PALETTE["h0"], linewidth=2, label=h0_label),
+        key="h0", reference=True,
+    )
+    plot.add(
+        puma.Histogram(values=h1_counts, bin_edges=edges, norm=False, histtype="step",
+                        colour=style.PALETTE["h1"], linewidth=2, linestyle="--", label=h1_label),
+        key="h1",
+    )
+    plot.add(
+        puma.Histogram(values=data_values.astype(float), bin_edges=edges, norm=False, is_data=True,
+                        colour=style.PALETTE["data"], label="pseudo-data"),
+        key="data",
+    )
+    plot.draw()
+    plot.savefig(outpath)
+    plt.close("all")
 
-    # H0: HNL hypothesis, mass ~ 40 GeV, width dominated by detector resolution
-    # (long-lived particle -> narrow intrinsic width, reconstruction smearing dominates)
-    hnl_toy = relativistic_bw_resonance(3000, 40, 0.5, 6, seed_offset=20)
-    hnl_toy = hnl_toy[(hnl_toy > xrange[0]) & (hnl_toy < xrange[1])]
-    hnl_hist, _ = np.histogram(hnl_toy, bins=bins)
-    hnl_hist = hnl_hist / hnl_hist.max() * reported.max()
+    chi2_h0 = np.sum((data_values - h0_counts) ** 2 / np.clip(data_values, 1, None))
+    chi2_h1 = np.sum((data_values - h1_counts) ** 2 / np.clip(data_values, 1, None))
+    return chi2_h0, chi2_h1
 
-    # H1 (alternative, "wrong process"): pure combinatorial jet+lepton
-    # background from mis-paired soft objects -- smoothly falling, no peak
-    alt_toy = combinatorial_background(3000, xrange[0], xrange[1], 25, seed_offset=21)
-    alt_hist, _ = np.histogram(alt_toy, bins=bins)
-    alt_hist = alt_hist / alt_hist.max() * reported.max()
 
-    ax.errorbar(centers, reported, yerr=np.sqrt(reported), fmt="o", color="black",
-                label="reported pseudo-data (slide 14)")
-    ax.plot(centers, hnl_hist, drawstyle="steps-mid", color=PALETTE[0], lw=2,
-            label="H0: HNL, m=40 GeV (toy)")
-    ax.plot(centers, alt_hist, drawstyle="steps-mid", color=PALETTE[5], lw=2,
-            ls="--", label="H1: mis-paired combinatorial bkg (toy, wrong hypothesis)")
-    ax.set_xlabel("m(J1, l1) [GeV]")
-    ax.set_ylabel("events / bin")
-    ax.set_title("91 GeV excess: HNL hypothesis vs. non-resonant alternative")
-    ax.legend(fontsize=9)
-    fce_header(ax, 91)
+def single_histogram_plot(values, xrange, xlabel, energy_gev, outpath, colour_key, label,
+                           vline=None, vline_label=None):
+    edges = np.linspace(*xrange, 31)
+    counts, _ = np.histogram(values, bins=edges)
 
-    chi2_hnl = np.sum((reported - hnl_hist) ** 2 / np.clip(reported, 1, None))
-    chi2_alt = np.sum((reported - alt_hist) ** 2 / np.clip(reported, 1, None))
-    ax.text(
-        0.02, 0.72,
-        f"chi2(H0, HNL) = {chi2_hnl:.1f}\nchi2(H1, combinatorial) = {chi2_alt:.1f}\n"
-        f"(lower is better; both computed on the same {len(reported)} toy bins)",
-        transform=ax.transAxes, fontsize=8,
-        bbox=dict(boxstyle="round", fc="white", ec="gray"),
+    plot = puma.HistogramPlot(
+        **style.puma_kwargs(
+            energy_gev, ylabel="toy events / bin", xlabel=xlabel, figsize=(6, 5),
+            leg_loc="upper right" if vline is None else "lower right",
+        )
+    )
+    plot.add(
+        puma.Histogram(values=counts, bin_edges=edges, norm=False, histtype="stepfilled",
+                        colour=style.PALETTE[colour_key], alpha=0.75, label=label),
+        key="h",
+    )
+    plot.draw()
+    if vline is not None:
+        ax = plot.axis_top
+        ax.axvline(vline, color="black", ls=":", lw=1.5)
+        ymax = ax.get_ylim()[1]
+        ax.text(vline, ymax * 0.5, f"  {vline_label}", fontsize=9, ha="left", va="center", rotation=90)
+    plot.savefig(outpath)
+    plt.close("all")
+
+
+# ---------------------------------------------------------------------------
+# 2) Significance validation: recompute the discovery significance from the
+#    reported pseudo-data under three tiers (see toygen.py docstring), and
+#    check it against 3-sigma/5-sigma thresholds. This is the actual
+#    "validate or invalidate the BSM claim" check.
+# ---------------------------------------------------------------------------
+
+def significance_hierarchy_plot(n_obs, event_topology, quoted_sigmas, energy_gev, outpath):
+    """Significance-vs-assumed-background scan, instead of a single bar per
+    tier: with n_obs fixed at the (digitised) reported pseudo-data sum, the
+    background yield b is not reliably known from the slides, so we scan it
+    and show where the three significance tiers land relative to the quoted
+    numbers. Where the Tier-2/Tier-3 curves cross a quoted horizontal line
+    tells us what background level would make our recomputation consistent
+    with that quoted number -- this is the actual validation: do the quoted
+    numbers correspond to a *plausible* background yield, given n_obs?
+
+    event_topology: dict(n_jets=, n_el=, n_mu=, n_bjets=) representative of
+    the selection, used to combine the fce_studio systematics into sigma_b.
+    """
+    rel_unc = background_relative_uncertainty(
+        sl.LUMI_UNC, sl.JEC_PER_JET, sl.LEP_PER_EL, sl.LEP_PER_MU, sl.BTAG_PER_BJET,
+        **event_topology,
+    )
+    b_scan = np.linspace(0.3, n_obs * 0.97, 300)
+    z1 = counting_significance(n_obs)  # independent of b
+    z2 = np.array([poisson_excess_significance(n_obs, b) for b in b_scan])
+    z3 = np.array([significance_with_bkg_uncertainty(n_obs, b, b * rel_unc) for b in b_scan])
+
+    fig, ax = plt.subplots(figsize=(7.5, 5.5))
+    ax.axhline(z1, color=style.PALETTE["X4"], lw=1.8,
+               label=f"Tier 1: counting, $\\sqrt{{2n}}$ = {z1:.1f}$\\sigma$ (bkg-free)")
+    ax.plot(b_scan, z2, color=style.PALETTE["X2"], lw=1.8, label="Tier 2: Poisson-Asimov, exact $b$")
+    ax.plot(b_scan, z3, color=style.PALETTE["X1"], lw=1.8,
+            label=rf"Tier 3: Asimov w/ bkg unc. ($\pm${rel_unc*100:.1f}% on $b$)")
+    ax.axhline(5, color="black", ls="-", lw=1)
+    ax.text(b_scan[-1], 5.1, "5$\\sigma$ discovery", fontsize=8, ha="right")
+    ax.axhline(3, color="gray", ls="--", lw=1)
+    ax.text(b_scan[-1], 3.1, "3$\\sigma$ evidence", fontsize=8, ha="right")
+    for name, val in quoted_sigmas.items():
+        ax.axhline(val, color=style.PALETTE["h1"], ls=":", lw=1.2, alpha=0.8)
+        ax.text(b_scan[-1], val + 0.15, f"quoted: {name} = {val}$\\sigma$", fontsize=7.5,
+                color=style.PALETTE["h1"], ha="right")
+    ax.set_xlim(b_scan[0], b_scan[-1])
+    ax.set_ylim(0, max([z1, *quoted_sigmas.values()]) * 1.3)
+    ax.set_xlabel(f"assumed background yield $b$ [events]  (observed $n$ = {n_obs:.0f}, from slide pseudo-data)")
+    ax.set_ylabel("recomputed discovery significance")
+    ax.legend(fontsize=8, loc="lower left")
+    style.cld_atlasify(ax, energy_gev)
+    style.savefig(fig, outpath)
+    plt.close(fig)
+    return dict(z_counting=float(z1), rel_unc=rel_unc, n_obs=n_obs)
+
+
+# ---------------------------------------------------------------------------
+# main
+# ---------------------------------------------------------------------------
+
+def main():
+    # --- 91 GeV: HNL (m~40 GeV) vs. combinatorial mis-pairing alternative ---
+    h0_91 = relativistic_bw_resonance(4000, 40, 0.5, 6, seed_offset=20)
+    h1_91 = combinatorial_background(4000, sl.S91_MJ1L1_CENTERS[0] - 2.5,
+                                      sl.S91_MJ1L1_CENTERS[-1] + 2.5, 25, seed_offset=21)
+    chi2_h0_91, chi2_h1_91 = hypothesis_test_plot(
+        h0_91, h1_91, sl.S91_MJ1L1_CENTERS, sl.S91_MJ1L1_DATA, "m(J1, l1) [GeV]",
+        r"H0: HNL, $m$=40 GeV (toy)", "H1: combinatorial bkg (toy, wrong hyp.)",
+        91, os.path.join(FIGDIR, "01_hnl_91GeV_hypothesis_test.png"),
     )
 
-    fig.tight_layout()
-    fig.savefig(outpath)
-    plt.close(fig)
-    return chi2_hnl, chi2_alt
+    # n_obs read directly off the slide-14 pseudo-data; as a side check, note
+    # that n_obs - quoted_excess (31 - 29.6 ~= 1.4) already implies a small
+    # background, consistent with this being a tight, high-purity selection.
+    n_obs_91 = float(sl.S91_MJ1L1_DATA.sum())
+    sig_stats_91 = significance_hierarchy_plot(
+        n_obs_91, dict(n_jets=1, n_el=0.5, n_mu=0.5, n_bjets=0),
+        {"slide-14 fit box": sl.S91_SIGMA_FITBOX, "slide-14 text": sl.S91_SIGMA_TEXT,
+         "slide-16 headline": sl.S91_SIGMA_SLIDE16},
+        91, os.path.join(FIGDIR, "02_significance_hierarchy_91GeV.png"),
+    )
 
-
-# ---------------------------------------------------------------------------
-# 365 GeV: W mass reconstruction + HNL mass reconstruction, including the
-# combinatorial mis-pairing effect noted on slide 20 ("sub-optimal pairing
-# might lead to large spread").
-# ---------------------------------------------------------------------------
-
-def hnl_365gev(outpath):
-    apply_base_style()
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
-
-    # --- W boson mass from (j2+j3), slide 19 ---
-    ax = axes[0]
-    xrange = (0, 200)
+    # --- 365 GeV: W and HNL mass reconstruction toys ---
     correct_w = relativistic_bw_resonance(4000, 80.4, 2.1, 8, seed_offset=30)
-    # apply the mis-pairing smear the slide already flags as a caveat
     w_toy = wrong_pairing_smear(correct_w, mis_id_fraction=0.5, spread=35, seed_offset=31)
-    w_toy = w_toy[(w_toy > xrange[0]) & (w_toy < xrange[1])]
-    ax.hist(w_toy, bins=30, range=xrange, color=PALETTE[0], alpha=0.85,
-            label="toy: correct pairing (50%) + mis-pairing smear (50%)")
-    ax.axvline(80.4, color="black", ls=":", label="m(W) = 80.4 GeV")
-    ax.set_xlabel("m(j2, j3) [GeV]")
-    ax.set_ylabel("toy events / bin")
-    ax.set_title("W boson reconstruction (matches slide 19 broad shape)")
-    ax.legend(fontsize=8)
+    single_histogram_plot(
+        w_toy, (0, 200), "m(j2, j3) [GeV]", 365,
+        os.path.join(FIGDIR, "03_W_mass_365GeV.png"), "X1",
+        "toy: correct pairing (50%) + mis-pairing (50%)", vline=80.4, vline_label=r"$m_W$ = 80.4 GeV",
+    )
 
-    # --- HNL mass from (j2+j3+l2), slide 20 ---
-    ax = axes[1]
-    xrange = (0, 300)
     correct_hnl = relativistic_bw_resonance(4000, 150, 3.0, 12, seed_offset=32)
     hnl_toy = wrong_pairing_smear(correct_hnl, mis_id_fraction=0.55, spread=45, seed_offset=33)
-    hnl_toy = hnl_toy[(hnl_toy > xrange[0]) & (hnl_toy < xrange[1])]
-    ax.hist(hnl_toy, bins=30, range=xrange, color=PALETTE[2], alpha=0.85,
-            label="toy: correct pairing (45%) + mis-pairing smear (55%)")
-    ax.axvline(150, color="black", ls=":", label="reported m(HNL) ~ 150 GeV")
-    ax.set_xlabel("m(j2, j3, l2) [GeV]")
-    ax.set_ylabel("toy events / bin")
-    ax.set_title("HNL mass reconstruction: broad spread is expected\nfrom 3-body combinatorics, not necessarily a flaw")
-    ax.legend(fontsize=8)
-
-    fig.suptitle("FCE (toy, synthetic)  --  CLD, sqrt(s) = 365 GeV",
-                 fontsize=12, fontweight="bold", x=0.02, ha="left")
-    fig.tight_layout(rect=[0, 0, 1, 0.93])
-    fig.savefig(outpath)
-    plt.close(fig)
-
-
-def alternative_sm_explanation_365(outpath):
-    """Check whether the 365 GeV excess (slide 17, sigma=6.46) could plausibly
-    be explained by mis-reconstructed SM ZZ/WW instead of a new HNL, using the
-    total-system-mass observable from slide 17.
-    """
-    apply_base_style()
-    fig, ax = plt.subplots(figsize=(8, 5.5))
-
-    xrange = (190, 610)
-    bins = np.linspace(*xrange, 15)
-    centers = 0.5 * (bins[:-1] + bins[1:])
-    reported = np.array([0, 0, 3, 6, 8, 24, 4, 2, 1, 0, 0, 0, 0, 0])
-
-    # H0: genuine new resonance (HNL pair / single production) near sqrt(s)
-    hnl_sys = relativistic_bw_resonance(3000, 345, 5, 25, seed_offset=40)
-    hnl_sys = hnl_sys[(hnl_sys > xrange[0]) & (hnl_sys < xrange[1])]
-    hnl_hist, _ = np.histogram(hnl_sys, bins=bins)
-    hnl_hist = hnl_hist / hnl_hist.max() * reported.max()
-
-    # H1: mis-reconstructed SM ZZ/WW (already in the Task-A sample list at
-    # 365 GeV) with the leptons/jets mismeasured -- total mass should track
-    # close to sqrt(s), broad and roughly flat, not peaked at 345 GeV specifically
-    sm_misreco = combinatorial_background(3000, xrange[0], xrange[1], 90, seed_offset=41) + 190
-    sm_misreco = sm_misreco[(sm_misreco > xrange[0]) & (sm_misreco < xrange[1])]
-    sm_hist, _ = np.histogram(sm_misreco, bins=bins)
-    sm_hist = sm_hist / sm_hist.max() * reported.max()
-
-    ax.errorbar(centers, reported, yerr=np.sqrt(reported), fmt="o", color="black",
-                label="reported pseudo-data (slide 17)")
-    ax.plot(centers, hnl_hist, drawstyle="steps-mid", color=PALETTE[0], lw=2,
-            label="H0: localised new-physics resonance (toy)")
-    ax.plot(centers, sm_hist, drawstyle="steps-mid", color=PALETTE[5], lw=2, ls="--",
-            label="H1: mis-reconstructed SM ZZ/WW tail (toy, wrong hypothesis)")
-    ax.set_xlabel("(j1+j2+j3+j4+l1+l2).mass [GeV]")
-    ax.set_ylabel("events / bin")
-    ax.set_title("365 GeV excess: localised resonance vs. mis-reconstructed SM tail")
-    ax.legend(fontsize=8)
-    fce_header(ax, 365)
-
-    chi2_hnl = np.sum((reported - hnl_hist) ** 2 / np.clip(reported, 1, None))
-    chi2_sm = np.sum((reported - sm_hist) ** 2 / np.clip(reported, 1, None))
-    ax.text(
-        0.02, 0.72,
-        f"chi2(H0, resonance) = {chi2_hnl:.1f}\nchi2(H1, SM mis-reco) = {chi2_sm:.1f}",
-        transform=ax.transAxes, fontsize=8,
-        bbox=dict(boxstyle="round", fc="white", ec="gray"),
+    single_histogram_plot(
+        hnl_toy, (0, 300), "m(j2, j3, l2) [GeV]", 365,
+        os.path.join(FIGDIR, "04_HNL_mass_365GeV.png"), "X3",
+        "toy: correct pairing (45%) + mis-pairing (55%)", vline=150,
+        vline_label=r"reported $m_{HNL} \sim$ 150 GeV",
     )
 
-    fig.tight_layout()
-    fig.savefig(outpath)
-    plt.close(fig)
-    return chi2_hnl, chi2_sm
+    # --- 365 GeV: localised resonance vs. mis-reconstructed SM ZZ/WW tail ---
+    h0_365 = relativistic_bw_resonance(3000, 345, 5, 25, seed_offset=40)
+    h1_365 = combinatorial_background(3000, sl.S365_MTOT_CENTERS[0] - 15,
+                                       sl.S365_MTOT_CENTERS[-1] + 15, 90, seed_offset=41) \
+        + sl.S365_MTOT_CENTERS[0] - 15
+    chi2_h0_365, chi2_h1_365 = hypothesis_test_plot(
+        h0_365, h1_365, sl.S365_MTOT_CENTERS, sl.S365_MTOT_DATA,
+        "(j1+j2+j3+j4+l1+l2).mass [GeV]", "H0: localised resonance (toy)",
+        "H1: mis-reco SM ZZ/WW tail (toy)", 365,
+        os.path.join(FIGDIR, "05_hnl_365GeV_alternative_test.png"),
+    )
+
+    n_obs_365 = float(sl.S365_MTOT_DATA.sum())
+    sig_stats_365 = significance_hierarchy_plot(
+        n_obs_365, dict(n_jets=2, n_el=1, n_mu=1, n_bjets=0),
+        {"slide-17 quoted": sl.S365_SIGMA_QUOTED},
+        365, os.path.join(FIGDIR, "06_significance_hierarchy_365GeV.png"),
+    )
+
+    print("BSM interpretation figures written to", FIGDIR)
+    print(f"91 GeV shape test: chi2(H0 HNL)={chi2_h0_91:.1f} vs chi2(H1 combinatorial)={chi2_h1_91:.1f}")
+    print(f"91 GeV significance tiers: {sig_stats_91}")
+    print(f"365 GeV shape test: chi2(H0 resonance)={chi2_h0_365:.1f} vs chi2(H1 SM mis-reco)={chi2_h1_365:.1f}")
+    print(f"365 GeV significance tiers: {sig_stats_365}")
+    print_human_action_items()
 
 
 def print_human_action_items():
@@ -194,48 +249,34 @@ def print_human_action_items():
     print("ITEMS THAT NEED HUMAN ACTION (cannot be resolved from the slides alone):")
     print("-" * 72)
     print(
-        "1. 91 GeV significance is inconsistent across the deck:\n"
-        "   - slide 14 fit box quotes 5.79 sigma\n"
-        "   - slide 14 body text quotes 7.8 sigma\n"
-        "   - slide 16 headline quotes 7 sigma\n"
-        "   -> re-run/inspect the original fit log to determine which number\n"
-        "      (if any) is the final one, and fix the deck before presenting it."
+        "1. 91 GeV significance is quoted 3 ways (5.79 / 7.8 / 7 sigma). Our\n"
+        "   recomputation (02_significance_hierarchy_91GeV.png) reproduces the\n"
+        "   same tiered pattern (bkg-free > Poisson-exact > with-systematics)\n"
+        "   using the same 3-tier logic implemented in fce_studio/engine/\n"
+        "   fitter.py, which strongly suggests the 3 numbers are 3 different\n"
+        "   estimators of the same excess, not 3 independent results. Confirm\n"
+        "   against the real fit log which estimator produced which number,\n"
+        "   and quote only the most conservative (profile-likelihood / fit-box)\n"
+        "   one going forward."
     )
     print(
-        "2. Absolute cutflow numbers (N passing events per cut, per sample,\n"
-        "   per energy) are not in the deck -- only cut definitions and a\n"
-        "   couple of percentages (20.9%, 1.8%). The cutflow tables produced\n"
-        "   by this script use ASSUMED per-cut efficiencies (marked with '*').\n"
-        "   -> export the real cutflow from fce (aggregate yields only, not\n"
-        "      the underlying events) and replace the '*' numbers in\n"
-        "      src/interpret_sm.py with the real ones."
+        "2. No absolute cutflow numbers are in the deck -- only cut definitions\n"
+        "   and two quoted percentages (20.9%, 1.8%). interpret_sm.py's cutflow\n"
+        "   plots use ASSUMED per-cut efficiencies (marked '*'). Replace with\n"
+        "   the real fce cutflow (aggregate yields only) when available."
     )
     print(
-        "3. Task A (SM sample identification) is missing entirely for the\n"
-        "   240 GeV working point, and was not shown for 91 GeV in the talk\n"
-        "   (only the BSM search was). -> needs to be done by the team; this\n"
-        "   repo only provides an expected-composition placeholder."
+        "3. Task A (SM sample identification) is missing for 240 GeV and was\n"
+        "   not shown for 91 GeV in the talk. This repo only provides an\n"
+        "   expected-composition placeholder for both."
     )
     print(
-        "4. The 240 GeV, 91 GeV luminosity/cross-section assumptions used\n"
-        "   anywhere in the real fce analysis (if any absolute yields are\n"
-        "   quoted later) should be confirmed against the actual generator\n"
-        "   config, since this repo does not use or infer them."
+        "4. sigma_b in the significance-hierarchy plots is built from generic\n"
+        "   representative object multiplicities (n_jets, n_el, n_mu, n_bjets),\n"
+        "   not the real per-event values. Replace with the real selection's\n"
+        "   average multiplicities for a precise number.\n"
     )
     print("=" * 72)
-
-
-def main():
-    chi2_hnl_91, chi2_alt_91 = hnl_91gev(os.path.join(FIGDIR, "01_hnl_91GeV_hypothesis_test.png"))
-    hnl_365gev(os.path.join(FIGDIR, "02_hnl_365GeV_mass_reco.png"))
-    chi2_hnl_365, chi2_sm_365 = alternative_sm_explanation_365(
-        os.path.join(FIGDIR, "03_hnl_365GeV_alternative_test.png")
-    )
-
-    print("BSM interpretation figures written to", FIGDIR)
-    print(f"91 GeV: chi2(HNL)={chi2_hnl_91:.1f} vs chi2(combinatorial bkg)={chi2_alt_91:.1f}")
-    print(f"365 GeV: chi2(resonance)={chi2_hnl_365:.1f} vs chi2(SM mis-reco)={chi2_sm_365:.1f}")
-    print_human_action_items()
 
 
 if __name__ == "__main__":

@@ -1,51 +1,68 @@
-"""Shared matplotlib style, loosely echoing the FCE plot look used in the talk
-(bold "FCE" tag top-left, "CLD, sqrt(s) = ... GeV" top-right) so figures are
-visually consistent with the presentation, without depending on the `fce`
-package itself.
+"""
+Shared plot style: puma (https://github.com/umami-hep/puma) with the ATLAS
+badge replaced by a "CLD Collaboration" one, dpi=200 everywhere, and no plot
+titles (only axis labels/legends -- titles are set to "").
+
+puma is built on top of `atlasify`; every `PlotObject` (HistogramPlot,
+VarVsEffPlot, ...) accepts `atlas_brand`/`atlas_first_tag`/`atlas_second_tag`
+which we repoint at CLD here. For the handful of plots that don't map onto a
+puma plot type (plain bar/line charts) `cld_atlasify()` calls the same
+underlying `atlasify` package directly, so every figure in this repo -- puma
+or not -- carries the same badge.
 """
 from __future__ import annotations
 
-import matplotlib.pyplot as plt
+import atlasify
 
-PALETTE = ["#3B75AF", "#59A14F", "#A0522D", "#8C8C8C", "#57C2CC", "#E15759"]
+DPI = 200
+
+BRAND = "CLD"
+FIRST_TAG = "Collaboration Simulation (toy)"
+
+PALETTE = {
+    "X1": "#3B75AF",
+    "X2": "#59A14F",
+    "X3": "#A0522D",
+    "X4": "#8C8C8C",
+    "X5": "#57C2CC",
+    "data": "#000000",
+    "h0": "#3B75AF",
+    "h1": "#E15759",
+}
 
 
-def apply_base_style():
-    plt.rcParams.update(
-        {
-            "figure.dpi": 150,
-            "savefig.dpi": 150,
-            "font.size": 11,
-            "axes.labelsize": 11,
-            "axes.titlesize": 12,
-            "legend.fontsize": 9,
-            "xtick.labelsize": 9,
-            "ytick.labelsize": 9,
-            "axes.linewidth": 1.0,
-            "axes.titlepad": 12,
-            "figure.facecolor": "white",
-            "savefig.facecolor": "white",
-        }
+def sqrt_s_tag(energy_gev) -> str:
+    return rf"$\sqrt{{s}}$ = {energy_gev} GeV"
+
+
+def puma_kwargs(energy_gev, **extra):
+    """Common kwargs for any puma PlotObject (HistogramPlot, VarVsEffPlot, ...)."""
+    kwargs = dict(
+        title="",
+        atlas_brand=BRAND,
+        atlas_first_tag=FIRST_TAG,
+        atlas_second_tag=sqrt_s_tag(energy_gev) if energy_gev is not None else None,
+        use_atlas_tag=True,
+        apply_atlas_style=True,
+        dpi=DPI,
+    )
+    kwargs.update(extra)
+    return kwargs
+
+
+def cld_atlasify(ax, energy_gev=None, subtext_extra=None):
+    """Apply the CLD badge to a plain matplotlib Axes (for plots that don't
+    map onto a puma plot type, e.g. bar/line charts)."""
+    subtext = sqrt_s_tag(energy_gev) if energy_gev is not None else None
+    if subtext_extra:
+        subtext = subtext_extra if subtext is None else f"{subtext}\n{subtext_extra}"
+    atlasify.atlasify(
+        atlas=FIRST_TAG,
+        subtext=subtext,
+        brand=BRAND,
+        axes=ax,
     )
 
 
-def fce_header(ax, energy_gev, tag="FCE (toy, synthetic)"):
-    ax.text(
-        0.0,
-        1.10,
-        tag,
-        transform=ax.transAxes,
-        fontsize=11,
-        fontweight="bold",
-        va="bottom",
-        ha="left",
-    )
-    ax.text(
-        1.0,
-        1.10,
-        rf"CLD, $\sqrt{{s}}$ = {energy_gev} GeV",
-        transform=ax.transAxes,
-        fontsize=10,
-        va="bottom",
-        ha="right",
-    )
+def savefig(fig, path, dpi=DPI):
+    fig.savefig(path, dpi=dpi, bbox_inches="tight", pad_inches=0.05)

@@ -29,34 +29,49 @@ repo:
    was not actually carried out in the talk, with an expected-composition
    placeholder instead of a fabricated identification.
 
-**No real FCC-ee/CLD data or `fce` output was read to build this repo.**
-Everything here is a parametric *toy* Monte Carlo, anchored only to what is
-explicitly stated or visually readable in the presentation (cut
-definitions, quoted percentages, approximate peak positions/widths, quoted
-significances). This is intentional -- see the request that led to this
-repo. Do not extend these scripts to load real ntuples without first
-checking that this is still the intent.
+**No real FCC-ee/CLD data was read to build this repo.** Everything here is
+a parametric *toy* Monte Carlo, anchored only to what is explicitly stated
+or visually readable in the presentation (cut definitions, quoted
+percentages, approximate peak positions/widths, quoted significances) plus
+a handful of legitimate constants pulled from the **code** (not the data) of
+the `fce_studio` package installed in the `bnd_school` conda env --
+systematic-uncertainty magnitudes and the discovery-significance formulas it
+implements (see [`CODE_EXPLAINED.md`](CODE_EXPLAINED.md) section 0 for the
+exact boundary). Do not extend these scripts to load real ntuples without
+first checking that this is still the intent.
+
+Figures are styled with [`puma`](https://github.com/umami-hep/puma) (the
+FTAG-group plotting library built on `atlasify`), with the ATLAS badge
+re-pointed at "CLD Collaboration"; every figure is its own PNG at dpi=200
+with no plot titles (axis labels + legend + CLD badge only).
 
 ## Layout
 
 ```
 src/
-  toygen.py          shared toy-MC building blocks (resonances, combinatorial
-                      backgrounds, cutflow helper, pull/compatibility helper)
-  style.py            shared plot style ("FCE (toy, synthetic)" header)
-  interpret_sm.py      Task A: SM cutflow tables, mass-spectrum toys,
-                       cross-energy consistency check, 91/240 GeV gap panels,
-                       SM-completeness check behind the Task B excesses
-  interpret_bsm.py     Task B: HNL hypothesis tests at 91 and 365 GeV,
-                       W/HNL mass reconstruction toys, alternative-hypothesis
-                       tests, and a printed list of human action items
+  slide_readings.py    single source of truth for every number read off the
+                        talk (pseudo-data points, quoted significances/
+                        percentages) plus the fce_studio systematics constants
+  toygen.py             shared toy-MC building blocks (resonances, combinatorial
+                        backgrounds, cutflow helper, significance formulas)
+  style.py              shared CLD/puma plot style (dpi=200, no titles)
+  interpret_sm.py       Task A: cutflow EFFICIENCY plots, per-process mass
+                        spectra vs. reported pseudo-data, lepton-pt turn-on
+                        efficiency (puma VarVsEffPlot) and b-tag efficiency
+                        cross-energy checks, 91/240 GeV gap panels,
+                        SM-completeness checks behind the Task B excesses
+  interpret_bsm.py      Task B: HNL hypothesis-vs-alternative tests, W/HNL
+                        mass reconstruction toys, and a significance-tier
+                        validation (see CODE_EXPLAINED.md) that reconciles
+                        the three different sigma values quoted at 91 GeV
 figures/
-  sm/                  PNGs produced by interpret_sm.py
-  bsm/                 PNGs produced by interpret_bsm.py
+  sm/                   PNGs produced by interpret_sm.py (12 figures)
+  bsm/                  PNGs produced by interpret_bsm.py (6 figures)
 notes/
-  process_mapping.md   full reasoning behind the X1..X5 -> process mapping
-                       used in this repo, energy point by energy point, with
-                       the inconsistencies found in the deck itself
+  process_mapping.md    full reasoning behind the X1..X5 -> process mapping
+                        used in this repo, energy point by energy point, with
+                        the inconsistencies found in the deck itself
+CODE_EXPLAINED.md       what every script/figure does, why, and how to read it
 data/
   (synthetic toy samples, if/when exported -- see interpret_sm.py / interpret_bsm.py)
 ```
@@ -64,7 +79,8 @@ data/
 ## Running it
 
 ```bash
-conda activate bnd_school   # numpy, matplotlib already available there
+conda activate bnd_school
+pip install -r requirements.txt   # puma-hep, atlasify (numpy/matplotlib already present)
 cd src
 python interpret_sm.py
 python interpret_bsm.py
@@ -72,17 +88,22 @@ python interpret_bsm.py
 
 Each script is self-contained, writes its PNGs under `figures/`, and prints
 a short summary (including, for `interpret_bsm.py`, the list of things that
-need a human to resolve -- see below).
+need a human to resolve -- see below). **See [`CODE_EXPLAINED.md`](CODE_EXPLAINED.md)
+for what every figure means and how to read it.**
 
 ## What still needs a human
 
 `interpret_bsm.py` prints these at the end of every run; repeated here for
 visibility:
 
-1. **91 GeV significance is inconsistent across the deck**: the slide-14 fit
-   box quotes 5.79 sigma, the slide-14 body text quotes 7.8 sigma, and the
-   slide-16 headline quotes 7 sigma. These can't be reconciled from the
-   slides alone -- re-run/inspect the original fit log and fix the deck.
+1. **91 GeV significance is quoted 3 ways across the deck** (5.79 / 7.8 / 7
+   sigma). `interpret_bsm.py`'s `02_significance_hierarchy_91GeV.png`
+   reproduces the same 3-tier pattern using the same significance-estimator
+   logic implemented in `fce_studio/engine/fitter.py`, and finds the
+   bkg-free tier lands at 7.9σ -- close to the quoted 7.8σ -- which is
+   evidence (not proof) that the 3 numbers are 3 different estimators of one
+   excess. Confirm against the real fit log which estimator produced which
+   number, and quote only the most conservative one going forward.
 2. **No absolute cutflow numbers are given** in the talk, only cut
    definitions and two quoted percentages (20.9% at 91 GeV, 1.8% at 160
    GeV). The cutflow tables in `interpret_sm.py` use assumed per-cut

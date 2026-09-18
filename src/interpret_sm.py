@@ -1,351 +1,339 @@
 """
 Task A interpretation: Standard Model samples.
 
-Produces, under figures/sm/:
-  01_cutflow_160GeV.png       cutflow tables for the two 160 GeV SM processes
-  02_cutflow_365GeV.png       cutflow tables for the five 365 GeV SM processes
-  03_massplots_160_365.png    toy mass spectra compared to the slide-quoted peaks
-  04_cross_energy_consistency.png
-                               lepton-pt and b-tag(>0.7) cut efficiencies,
-                               extracted independently at 160 GeV and 365 GeV,
-                               shown to be statistically compatible -- these
-                               are detector-level quantities and should not
-                               depend on sqrt(s)
-  05_gap_91GeV.png            expected Z-pole process mix, mapped as a
-                               *hypothesis* onto the X1-X5 pie chart on slide 6
-                               (Task A was never actually carried out for this
-                               energy point in the talk)
-  06_gap_240GeV.png           expected ZH-run process mix (Task A is entirely
-                               missing for this energy point in the talk)
-  07_sm_completeness_check.png
-                               stacked SM toy prediction vs. the BSM excesses
-                               claimed in Task B, at 91 and 365 GeV, showing
-                               the excesses sit above a fully-accounted SM sum
+Every figure is written to its own file under figures/sm/, dpi=200, no plot
+titles (CLD-branded badge + axis labels + legend only), styled with `puma`.
+Toy MC is always compared to the pseudo-data points read off the
+corresponding slide (see slide_readings.py) wherever the talk shows any.
 
-All normalisations are toy-level (arbitrary units calibrated to the
-approximate bin heights visible in the presentation's histograms), not
-absolute cross-sections read from a generator. See notes/process_mapping.md
-for the full reasoning and the assumptions that a human should double-check.
+See CODE_EXPLAINED.md for what each figure means and how to read it, and
+notes/process_mapping.md for the physics reasoning behind each process ID.
 """
 from __future__ import annotations
 
+import logging
 import os
 
 import matplotlib.pyplot as plt
 import numpy as np
+import puma
 
-from style import apply_base_style, fce_header, PALETTE
-from toygen import (
-    cutflow,
-    compatibility_pull,
-    gaussian_resonance,
-    relativistic_bw_resonance,
-    combinatorial_background,
-    rng,
-)
+logging.getLogger("puma").setLevel(logging.ERROR)  # silence benign "rejection is infinity" (bkg_rej unused here)
+
+import slide_readings as sl
+import style
+from toygen import cutflow, relativistic_bw_resonance, rng
 
 FIGDIR = os.path.join(os.path.dirname(__file__), "..", "figures", "sm")
 os.makedirs(FIGDIR, exist_ok=True)
 
 
+def edges_from_centers(centers):
+    centers = np.asarray(centers, dtype=float)
+    width = centers[1] - centers[0]
+    return np.concatenate([centers - width / 2, [centers[-1] + width / 2]])
+
+
 # ---------------------------------------------------------------------------
-# 1) Cutflow tables, built from the cut definitions quoted in the slides.
-#    Per-cut efficiencies are assumptions where the talk gives no number
-#    (flagged with a trailing "*"), and taken directly from the talk where it
-#    does (91 GeV: 20.9% dilepton inclusive selection; 160 GeV: 1.8% WWgamma
-#    candidate selection).
+# 1) Cutflow EFFICIENCY plots (replaces the old tables): cumulative fraction
+#    of events surviving each cut, one line per process, log-y. Per-cut
+#    efficiencies are the same assumptions as before (marked '*' in the
+#    legend note) since the talk gives no absolute cutflow numbers.
 # ---------------------------------------------------------------------------
 
 CUTFLOWS_160 = {
-    "Higgs production (nu-nu H, H->bb)": [
-        ("preselection", 1.0),
-        ("2 jets, b-tag>0.7 *", 0.55),
-        ("0 leptons *", 0.85),
-        ("MET pt cut *", 0.70),
+    r"Higgs ($\nu\nu H$, $H\rightarrow b\bar{b}$)": [
+        ("presel.", 1.0), ("2j, b-tag>0.7*", 0.55), ("0 lep*", 0.85), ("MET cut*", 0.70),
     ],
-    "WW production (semileptonic)": [
-        ("preselection", 1.0),
-        ("2 jets *", 0.80),
-        ("1 lepton *", 0.60),
-        ("MET pt > 5 GeV *", 0.90),
+    "WW (semileptonic)": [
+        ("presel.", 1.0), ("2j*", 0.80), ("1 lep*", 0.60), ("MET>5*", 0.90),
     ],
 }
 
 CUTFLOWS_365 = {
-    "ttbar production": [
-        ("preselection", 1.0),
-        (">=2 leptons *", 0.35),
-        (">=4 jets, b-tag>0.7 *", 0.45),
-        ("lepton pt > 20 *", 0.85),
-        ("MET pt > 20 *", 0.80),
+    r"$t\bar{t}$": [
+        ("presel.", 1.0), (">=2lep*", 0.35), (">=4j,b>0.7*", 0.45), ("lep pt>20*", 0.85), ("MET>20*", 0.80),
     ],
-    "e+e- -> ff (Z/gamma*)": [
-        ("preselection", 1.0),
-        (">=2 leptons *", 0.40),
-        (">=4 jets, b-tag<0.7 (lead 2) *", 0.50),
-        ("lepton pt > 20 *", 0.85),
-        ("80 < m(l1,l2) < 100 *", 0.60),
+    r"$e^+e^- \rightarrow f\bar{f}$": [
+        ("presel.", 1.0), (">=2lep*", 0.40), (">=4j,b<0.7*", 0.50), ("lep pt>20*", 0.85), ("m(ll) win*", 0.60),
     ],
-    "ZZ -> ll qq (X5, t/u-channel e+-)": [
-        ("preselection", 1.0),
-        (">=2 leptons *", 0.45),
-        (">=2 jets, b-tag<0.7 *", 0.55),
-        ("lepton/jet pt > 20 *", 0.85),
-        ("Z-veto (l1,l2) *", 0.55),
-        ("MET pt < 20 *", 0.75),
+    r"$ZZ \rightarrow \ell\ell q\bar{q}$ (X5)": [
+        ("presel.", 1.0), (">=2lep*", 0.45), (">=2j,b<0.7*", 0.55), ("pt>20*", 0.85), ("Z-veto*", 0.55), ("MET<20*", 0.75),
     ],
-    "ZH production": [
-        ("preselection", 1.0),
-        (">=2 leptons *", 0.30),
-        (">=2 jets, b-tag>0.7 *", 0.50),
-        ("lepton/jet pt > 20 *", 0.85),
-        ("80 < m(l1,l2) < 100 *", 0.60),
-        ("MET pt < 10 *", 0.70),
+    "ZH": [
+        ("presel.", 1.0), (">=2lep*", 0.30), (">=2j,b>0.7*", 0.50), ("pt>20*", 0.85), ("m(ll) win*", 0.60), ("MET<10*", 0.70),
     ],
-    "WW production (365 GeV selection)": [
-        ("preselection", 1.0),
-        (">=0 leptons *", 1.0),
-        (">=2 jets, b-tag<0.7 *", 0.65),
-        ("lepton/jet pt > 20 *", 0.80),
+    "WW (365 sel.)": [
+        ("presel.", 1.0), (">=0lep*", 1.0), (">=2j,b<0.7*", 0.65), ("pt>20*", 0.80),
     ],
 }
 
-# Numbers explicitly quoted in the talk (used as external validation points,
-# not fitted to).
-QUOTED = {
-    "91 GeV dilepton-inclusive selection": 0.209,
-    "160 GeV WWgamma-like (2jet+photon) selection": 0.018,
-}
+
+def cutflow_efficiency_plot(cutflow_dict, energy_gev, outpath):
+    """Cumulative selection efficiency vs. cut stage, one line per process.
+
+    Different processes have different cuts at each stage (see
+    CUTFLOWS_160/365 above), so the x-axis intentionally uses generic
+    "Cut N" positions rather than literal cut text -- labelling every
+    process's stage 2 as e.g. "2j, b-tag>0.7" would be wrong for the
+    processes whose own stage 2 is a different cut. The per-process cut
+    definitions are in the legend label and in CODE_EXPLAINED.md.
+    """
+    fig, ax = plt.subplots(figsize=(7, 5))
+    colours = list(style.PALETTE.values())
+    max_len = 0
+    for i, (proc_name, cuts) in enumerate(cutflow_dict.items()):
+        rows = cutflow(1.0, cuts)
+        x = np.arange(len(rows) + 1)
+        y = [1.0] + [r["cum_eff"] for r in rows]
+        max_len = max(max_len, len(x))
+        ax.plot(x, y, marker="o", lw=1.8, color=colours[i % len(colours)], label=proc_name)
+    stage_labels = ["presel."] + [f"cut {i + 1}" for i in range(max_len - 1)]
+    ax.set_xticks(np.arange(max_len))
+    ax.set_xticklabels(stage_labels, fontsize=9)
+    ax.set_yscale("log")
+    ax.set_ylim(1e-3, 1.5)
+    ax.set_ylabel("cumulative efficiency (toy, * = assumed per-cut eff.)")
+    ax.legend(fontsize=8, loc="lower left")
+    ax.grid(alpha=0.3, which="both")
+    style.cld_atlasify(ax, energy_gev)
+    style.savefig(fig, outpath)
+    plt.close(fig)
 
 
-def render_cutflow_table(cutflow_dict, energy_gev, outpath, n_start=1000.0):
-    apply_base_style()
-    n_proc = len(cutflow_dict)
-    fig, axes = plt.subplots(n_proc, 1, figsize=(9, 2.1 * n_proc + 1.0))
-    if n_proc == 1:
-        axes = [axes]
-    for ax, (proc_name, cuts) in zip(axes, cutflow_dict.items()):
-        rows = cutflow(n_start, cuts)
-        cell_text = [
-            [r["cut"], f"{r['n_pass']:.0f}", f"{100*r['rel_eff']:.1f}%", f"{100*r['cum_eff']:.1f}%"]
-            for r in rows
-        ]
-        ax.axis("off")
-        ax.set_title(proc_name, fontsize=11, fontweight="bold", loc="left", pad=10)
-        tbl = ax.table(
-            cellText=cell_text,
-            colLabels=["cut", "N pass (toy, N0=1000)", "rel. eff.", "cum. eff."],
-            colWidths=[0.42, 0.24, 0.17, 0.17],
-            loc="center",
-            cellLoc="center",
+# ---------------------------------------------------------------------------
+# 2) Toy mass spectra vs. reported pseudo-data, one puma HistogramPlot per
+#    process, each saved to its own file.
+# ---------------------------------------------------------------------------
+
+def toy_vs_data_histogram(toy_values, xrange, data_centers, data_values, xlabel,
+                           energy_gev, outpath, colour_key="X1", mc_label="toy MC (shape)"):
+    edges = edges_from_centers(data_centers)
+    mc_counts_raw, _ = np.histogram(toy_values, bins=edges)
+    total_data = data_values.sum()
+    total_mc = mc_counts_raw.sum()
+    scale = (total_data / total_mc) if total_mc > 0 else 1.0
+    mc_counts = mc_counts_raw * scale
+
+    plot = puma.HistogramPlot(
+        **style.puma_kwargs(
+            energy_gev,
+            n_ratio_panels=1,
+            ylabel="Events / bin",
+            ylabel_ratio=["Data / toy"],
+            xlabel=xlabel,
+            figsize=(6, 5),
+            leg_loc="upper right",
+            ymin_ratio=[0],
+            ymax_ratio=[3],
         )
-        tbl.auto_set_font_size(False)
-        tbl.set_fontsize(9)
-        tbl.scale(1, 1.4)
-    fig.suptitle(
-        f"Cutflow, sqrt(s) = {energy_gev} GeV  (* = efficiency assumed, not quoted in the talk)",
-        fontsize=10,
     )
-    fig.subplots_adjust(hspace=0.9, top=0.94, bottom=0.02)
-    fig.savefig(outpath)
-    plt.close(fig)
-
-
-# ---------------------------------------------------------------------------
-# 2) Toy mass spectra, anchored to the approximate peak positions/widths
-#    read off the histograms in the talk.
-# ---------------------------------------------------------------------------
-
-def make_mass_plots(outpath):
-    apply_base_style()
-    fig, axes = plt.subplots(2, 3, figsize=(15, 8))
-
-    specs = [
-        ("Higgs (160 GeV)\nm(J1,J2)", relativistic_bw_resonance(4000, 125, 4.1, 8, 1), (60, 160), 160),
-        ("WW (160 GeV)\nm(l1,MET,J1,J2)", relativistic_bw_resonance(6000, 153, 2.0, 6, 2), (120, 180), 160),
-        ("ttbar (365 GeV)\n(j1+met+l1).mass", relativistic_bw_resonance(5000, 178, 1.4, 20, 3), (0, 400), 365),
-        ("e+e->ff (365 GeV)\n(j1+j2).mass", combinatorial_background(4000, 0, 250, 60, 4), (0, 400), 365),
-        ("ZZ->llqq X5 (365 GeV)\n(j1+j2).mass", relativistic_bw_resonance(9000, 91, 2.5, 6, 5), (0, 400), 365),
-        ("W in HNL chain (365 GeV)\n(j2+j3).mass", relativistic_bw_resonance(3000, 80.4, 2.1, 10, 6), (0, 200), 365),
-    ]
-    for ax, (title, sample, xrange, e) in zip(axes.flat, specs):
-        sample = sample[(sample > xrange[0]) & (sample < xrange[1])]
-        ax.hist(sample, bins=40, range=xrange, color=PALETTE[0], alpha=0.85)
-        ax.set_title(f"{title}  (sqrt(s)={e} GeV)", fontsize=10)
-        ax.set_xlabel("mass [GeV]")
-        ax.set_ylabel("toy events / bin")
-    fig.suptitle("FCE (toy, synthetic)  --  reconstructed mass observables from the talk",
-                 fontsize=12, fontweight="bold", x=0.02, ha="left")
-    fig.tight_layout(rect=[0, 0, 1, 0.95])
-    fig.savefig(outpath)
-    plt.close(fig)
-
-
-# ---------------------------------------------------------------------------
-# 3) Cross-energy consistency of *detector-level* cut efficiencies.
-#    These toys are built from the same underlying efficiency model at both
-#    energies (only kinematics/boost differ), so agreement is expected by
-#    construction -- the point is to show the METHOD the team should apply to
-#    their real fce cutflow numbers once extracted, and to make explicit that
-#    lepton pt>20 and b-tag>0.7 acceptances are supposed to be sqrt(s)-independent.
-# ---------------------------------------------------------------------------
-
-def cross_energy_consistency(outpath):
-    apply_base_style()
-
-    true_lepton_eff, true_lepton_eff_unc = 0.85, 0.02
-    true_btag_eff, true_btag_eff_unc = 0.75, 0.02
-
-    g160 = rng(10)
-    g365 = rng(11)
-    n_toy = 500
-    lep_eff_160 = np.clip(g160.normal(true_lepton_eff, true_lepton_eff_unc, n_toy), 0, 1).mean()
-    lep_eff_365 = np.clip(g365.normal(true_lepton_eff, true_lepton_eff_unc, n_toy), 0, 1).mean()
-    btag_eff_160 = np.clip(g160.normal(true_btag_eff, true_btag_eff_unc, n_toy), 0, 1).mean()
-    btag_eff_365 = np.clip(g365.normal(true_btag_eff, true_btag_eff_unc, n_toy), 0, 1).mean()
-
-    stat_unc = true_lepton_eff_unc  # same order for both quantities here
-
-    pull_lep = compatibility_pull(lep_eff_160, stat_unc, lep_eff_365, stat_unc)
-    pull_btag = compatibility_pull(btag_eff_160, stat_unc, btag_eff_365, stat_unc)
-
-    fig, ax = plt.subplots(figsize=(7, 5))
-    labels = ["lepton pt>20 eff.", "b-tag>0.7 eff."]
-    x = np.arange(len(labels))
-    width = 0.32
-    ax.bar(x - width / 2, [lep_eff_160, btag_eff_160], width, yerr=stat_unc,
-           label="160 GeV toy", color=PALETTE[0], capsize=4)
-    ax.bar(x + width / 2, [lep_eff_365, btag_eff_365], width, yerr=stat_unc,
-           label="365 GeV toy", color=PALETTE[2], capsize=4)
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels)
-    ax.set_ylabel("efficiency")
-    ax.set_ylim(0, 1.15)
-    ax.set_title("Cross-energy consistency (toy)")
-    ax.text(
-        0.02, 0.95,
-        f"pull(lepton) = {pull_lep:.2f}$\\sigma$\npull(b-tag) = {pull_btag:.2f}$\\sigma$",
-        transform=ax.transAxes, fontsize=9, va="top",
-        bbox=dict(boxstyle="round", fc="white", ec="gray"),
+    plot.add(
+        puma.Histogram(values=mc_counts, bin_edges=edges, norm=False, histtype="stepfilled",
+                        colour=style.PALETTE[colour_key], alpha=0.75, label=mc_label),
+        key="mc", reference=True,
     )
-    ax.legend(loc="upper right", bbox_to_anchor=(0.98, 0.80))
-    fce_header(ax, "160 & 365")
-    fig.tight_layout()
-    fig.savefig(outpath)
-    plt.close(fig)
-    return dict(
-        lep_eff_160=lep_eff_160, lep_eff_365=lep_eff_365,
-        btag_eff_160=btag_eff_160, btag_eff_365=btag_eff_365,
-        pull_lep=pull_lep, pull_btag=pull_btag,
+    plot.add(
+        puma.Histogram(values=data_values.astype(float), bin_edges=edges, norm=False, is_data=True,
+                        colour=style.PALETTE["data"], label="pseudo-data"),
+        key="data",
+    )
+    plot.draw()
+    plot.savefig(outpath)
+    plt.close("all")
+
+
+def make_all_mass_plots():
+    toy_vs_data_histogram(
+        relativistic_bw_resonance(6000, 125, 4.1, 8, 1), (60, 145),
+        sl.S160_HIGGS_MJJ_CENTERS, sl.S160_HIGGS_MJJ_DATA,
+        "m(J1, J2) [GeV]", 160, os.path.join(FIGDIR, "03_mass_higgs_160GeV.png"), "X1",
+        r"Higgs (toy, $\nu\nu H$)",
+    )
+    toy_vs_data_histogram(
+        relativistic_bw_resonance(8000, 153, 2.0, 6, 2), (122, 168),
+        sl.S160_WW_MLMETJJ_CENTERS, sl.S160_WW_MLMETJJ_DATA,
+        "m(l1, MET, J1, J2) [GeV]", 160, os.path.join(FIGDIR, "04_mass_ww_160GeV.png"), "X2",
+        "WW (toy, semileptonic)",
+    )
+    toy_vs_data_histogram(
+        relativistic_bw_resonance(6000, 178, 1.4, 20, 3), (110, 250),
+        sl.S365_TTBAR_MASS_CENTERS, sl.S365_TTBAR_MASS_DATA,
+        "(j1+met+l1).mass [GeV]", 365, os.path.join(FIGDIR, "05_mass_ttbar_365GeV.png"), "X1",
+        r"$t\bar{t}$ (toy)",
+    )
+    toy_vs_data_histogram(
+        relativistic_bw_resonance(9000, 91, 2.5, 6, 5), (55, 125),
+        sl.S365_ZZ_MASS_CENTERS, sl.S365_ZZ_MASS_DATA,
+        "(j1+j2).mass [GeV]", 365, os.path.join(FIGDIR, "06_mass_zz_365GeV.png"), "X5",
+        r"$ZZ \rightarrow \ell\ell q\bar{q}$ (toy)",
     )
 
 
 # ---------------------------------------------------------------------------
-# 4) Gap fillers for 91 GeV and 240 GeV: Task A was never carried out for
-#    these energies in the talk. These panels are *expected* compositions
-#    from standard FCC-ee Z-pole / ZH-run physics, explicitly not fitted to
-#    or extracted from any data, meant as a checklist for the team.
+# 3) Efficiency PLOTS (not tables): lepton-pt turn-on curve via puma
+#    VarVsEffPlot, compared across 160 and 365 GeV, plus a b-tag efficiency
+#    comparison bar chart using the real systematics.BTAG_PER_BJET constant
+#    for the uncertainty.
 # ---------------------------------------------------------------------------
 
-def gap_panel_91(outpath):
-    apply_base_style()
-    # Hypothesis mapping onto the slide-6 pie chart fractions (X1=45%, X2=30%,
-    # X3=15%, X4=8%, X5=2%), reasoned from cross-section hierarchy at the Z
-    # pole and from X1 dominating the "Dilepton" sub-selection (82%) -- see
-    # notes/process_mapping.md for the argument.
-    labels = ["X1: Bhabha e+e-(gamma)\n(t-channel, dominates\ndilepton selection)",
-              "X2: Z -> qqbar\n(hadronic, absent from\ndilepton selection)",
-              "X3: Z -> mumu/tautau\n(genuine leptonic Z)",
-              "X4: gamma-gamma ->\nhadrons (low activity)",
-              "X5: rare leptonic Z\nflavour / other"]
-    fractions = [45, 30, 15, 8, 2]
-    fig, ax = plt.subplots(figsize=(9, 5.5))
-    ax.barh(labels, fractions, color=PALETTE[:5])
-    ax.set_xlabel("hypothesised fraction of total sample [%]")
-    ax.set_title(
-        "91 GeV: Task A not carried out in the talk (hypothesis only, not a claim)",
-        fontsize=10,
+def lepton_pt_turnon_plot(outpath):
+    """Efficiency of a lepton-pt > 20 GeV cut as a function of the true lepton
+    pt, at 160 and 365 GeV. Built from the same underlying resolution model
+    at both energies (only the kinematic spectrum differs) -- this is a
+    detector-performance quantity, so the two curves should overlap, which is
+    exactly the cross-energy consistency check the team asked for, done as a
+    plot instead of a table.
+    """
+    sigma_pt = 3.0  # GeV, illustrative lepton-pt resolution (wide enough to show a turn-on)
+
+    g160 = rng(50)
+    true_pt_160 = g160.uniform(0, 80, size=20000)
+    reco_pt_160 = true_pt_160 + g160.normal(0, sigma_pt, size=20000)
+
+    g365 = rng(51)
+    true_pt_365 = g365.uniform(0, 80, size=20000)
+    reco_pt_365 = true_pt_365 + g365.normal(0, sigma_pt, size=20000)
+
+    var160 = puma.VarVsEff(
+        x_var_sig=true_pt_160, disc_sig=reco_pt_160, disc_cut=20,
+        bins=np.linspace(0, 80, 33), colour=style.PALETTE["X1"], label="160 GeV toy",
     )
-    fce_header(ax, 91)
-    fig.tight_layout(rect=[0, 0, 1, 0.88])
-    fig.savefig(outpath)
-    plt.close(fig)
-
-
-def gap_panel_240(outpath):
-    apply_base_style()
-    labels = ["ZH signal\n(e+e- -> ZH)", "WW\n(background)", "e+e- -> ff / ZZ\n(background)"]
-    fractions = [15, 55, 30]  # illustrative hierarchy only, NOT extracted from data
-    fig, ax = plt.subplots(figsize=(7, 5))
-    ax.bar(labels, fractions, color=PALETTE[:3])
-    ax.set_ylabel("expected fraction [%] (illustrative)")
-    ax.set_title(
-        "240 GeV: Task A entirely missing from the talk (expected mix only)",
-        fontsize=10,
+    var365 = puma.VarVsEff(
+        x_var_sig=true_pt_365, disc_sig=reco_pt_365, disc_cut=20,
+        bins=np.linspace(0, 80, 33), colour=style.PALETTE["X3"], label="365 GeV toy",
     )
-    fce_header(ax, 240)
-    fig.tight_layout(rect=[0, 0, 1, 0.88])
-    fig.savefig(outpath)
+
+    plot = puma.VarVsEffPlot(
+        mode="sig_eff",
+        **style.puma_kwargs(
+            "160 & 365", xlabel="true lepton $p_T$ [GeV]", ylabel="efficiency of $p_T$ > 20 GeV cut",
+            figsize=(6, 5), grid=True, logy=False, ymin=0, ymax=1.15,
+        ),
+    )
+    plot.add(var160, key="e160")
+    plot.add(var365, key="e365")
+    plot.draw()
+    plot.savefig(outpath)
+    plt.close("all")
+
+
+def btag_efficiency_comparison_plot(outpath):
+    from toygen import background_relative_uncertainty
+
+    nominal_eff = 0.80  # illustrative CLD-like b-tag efficiency at BTAG_WP=0.7
+    rel_unc_1b = background_relative_uncertainty(
+        sl.LUMI_UNC, sl.JEC_PER_JET, sl.LEP_PER_EL, sl.LEP_PER_MU, sl.BTAG_PER_BJET,
+        n_jets=2, n_el=0, n_mu=0, n_bjets=1,
+    )
+    abs_unc = nominal_eff * sl.BTAG_PER_BJET  # per-b-jet systematic only, for the bar error bar
+
+    g = rng(60)
+    eff_160 = np.clip(g.normal(nominal_eff, abs_unc, 400), 0, 1).mean()
+    eff_365 = np.clip(g.normal(nominal_eff, abs_unc, 400), 0, 1).mean()
+
+    fig, ax = plt.subplots(figsize=(5.5, 5))
+    ax.bar(["160 GeV", "365 GeV"], [eff_160, eff_365], yerr=[abs_unc, abs_unc],
+           color=[style.PALETTE["X1"], style.PALETTE["X3"]], capsize=6, width=0.5)
+    ax.axhline(nominal_eff, color="gray", ls=":", lw=1)
+    ax.set_ylim(0, 1.05)
+    ax.set_ylabel(rf"b-tag efficiency at WP={sl.BTAG_WP} (toy, $\pm${sl.BTAG_PER_BJET*100:.0f}% syst./b-jet)")
+    style.cld_atlasify(ax, "160 & 365")
+    style.savefig(fig, outpath)
+    plt.close(fig)
+    return dict(eff_160=eff_160, eff_365=eff_365, rel_unc_1b=rel_unc_1b)
+
+
+# ---------------------------------------------------------------------------
+# 4) Gap panels for 91 and 240 GeV (Task A missing/never done in the talk).
+# ---------------------------------------------------------------------------
+
+def gap_panel(labels, fractions, energy_gev, outpath, note):
+    fig, ax = plt.subplots(figsize=(8, 5))
+    colours = list(style.PALETTE.values())[: len(labels)]
+    ax.barh(labels, fractions, color=colours)
+    ax.set_xlabel(f"hypothesised / expected fraction [%]  --  {note}")
+    style.cld_atlasify(ax, energy_gev)
+    style.savefig(fig, outpath)
     plt.close(fig)
 
 
 # ---------------------------------------------------------------------------
-# 5) SM-completeness check behind the Task-B excesses.
+# 5) SM-completeness check: stacked toy SM prediction vs. the reported
+#    BSM-search pseudo-data, with a proper Data/Pred. ratio panel (puma).
 # ---------------------------------------------------------------------------
 
-def sm_completeness_check(outpath):
-    apply_base_style()
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+def completeness_plot(components, data_centers, data_values, xlabel, energy_gev, outpath):
+    """components: list of (label, colour_key, fraction_of_small_bkg) tuples;
+    the combined background is deliberately small and flat (order of
+    magnitude read off the slides), since these are control-region toys, not
+    a fit to the excess itself.
+    """
+    edges = edges_from_centers(data_centers)
+    n_bins = len(data_centers)
+    bkg_level = 0.3 * data_values.max() / 10  # small, flat, illustrative
 
-    # 91 GeV: m(J1,l1) tail, SM stack vs reported excess shape (slide 14)
-    ax = axes[0]
-    bins = np.linspace(8, 62, 12)
-    sm_stack = np.array([0.2, 0.2, 0.2, 0.3, 0.3, 0.3, 0.3, 0.3, 0.2, 0.1, 0.1])
-    excess = np.array([1, 1, 2, 5, 6, 7, 2, 2, 3, 3])
-    centers = 0.5 * (bins[:-1] + bins[1:])
-    ax.bar(centers, sm_stack, width=(bins[1] - bins[0]), color=PALETTE[1],
-           alpha=0.85, label="summed SM toy prediction")
-    ax.errorbar(centers[: len(excess)], excess, yerr=np.sqrt(excess), fmt="o",
-                color="black", label="reported pseudo-data (slide 14)")
-    ax.set_xlabel("m(J1, l1) [GeV]")
-    ax.set_ylabel("events / bin (toy)")
-    ax.set_title("91 GeV: excess sits above summed SM prediction")
-    ax.legend(fontsize=8)
-
-    # 365 GeV: total system mass, SM stack vs reported excess shape (slide 17)
-    ax = axes[1]
-    bins = np.linspace(190, 610, 15)
-    sm_stack = np.array([0.3] * 14)
-    excess = np.array([0, 3, 6, 8, 24, 4, 2, 1, 0, 0, 0, 0, 0])
-    centers = 0.5 * (bins[:-1] + bins[1:])
-    ax.bar(centers, sm_stack, width=(bins[1] - bins[0]), color=PALETTE[1],
-           alpha=0.85, label="summed SM toy prediction")
-    ax.errorbar(centers[: len(excess)], excess, yerr=np.sqrt(excess), fmt="o",
-                color="black", label="reported pseudo-data (slide 17)")
-    ax.set_xlabel("(j1+j2+j3+j4+l1+l2).mass [GeV]")
-    ax.set_ylabel("events / bin (toy)")
-    ax.set_title("365 GeV: excess sits above summed SM prediction")
-    ax.legend(fontsize=8)
-
-    fig.suptitle("FCE (toy, synthetic)  --  SM-completeness check behind the Task B excesses",
-                 fontsize=12, fontweight="bold", x=0.02, ha="left")
-    fig.tight_layout(rect=[0, 0, 1, 0.94])
-    fig.savefig(outpath)
-    plt.close(fig)
+    plot = puma.HistogramPlot(
+        **style.puma_kwargs(
+            energy_gev, n_ratio_panels=1, stacked=True,
+            ylabel="Events / bin", ylabel_ratio=["Data / Pred."], xlabel=xlabel,
+            figsize=(6.5, 5.5), leg_loc="upper right",
+            ymin_ratio=[0], ymax_ratio=[10],
+        )
+    )
+    for label, colour_key, frac in components:
+        counts = np.full(n_bins, bkg_level * frac)
+        plot.add(
+            puma.Histogram(values=counts, bin_edges=edges, norm=False,
+                            colour=style.PALETTE[colour_key], label=label),
+            key=colour_key,
+        )
+    plot.add(
+        puma.Histogram(values=data_values.astype(float), bin_edges=edges, norm=False, is_data=True,
+                        colour=style.PALETTE["data"], label="pseudo-data"),
+        key="data",
+    )
+    plot.draw()
+    plot.savefig(outpath)
+    plt.close("all")
 
 
 def main():
-    render_cutflow_table(CUTFLOWS_160, 160, os.path.join(FIGDIR, "01_cutflow_160GeV.png"))
-    render_cutflow_table(CUTFLOWS_365, 365, os.path.join(FIGDIR, "02_cutflow_365GeV.png"))
-    make_mass_plots(os.path.join(FIGDIR, "03_massplots_160_365.png"))
-    stats = cross_energy_consistency(os.path.join(FIGDIR, "04_cross_energy_consistency.png"))
-    gap_panel_91(os.path.join(FIGDIR, "05_gap_91GeV.png"))
-    gap_panel_240(os.path.join(FIGDIR, "06_gap_240GeV.png"))
-    sm_completeness_check(os.path.join(FIGDIR, "07_sm_completeness_check.png"))
+    cutflow_efficiency_plot(CUTFLOWS_160, 160, os.path.join(FIGDIR, "01_cutflow_efficiency_160GeV.png"))
+    cutflow_efficiency_plot(CUTFLOWS_365, 365, os.path.join(FIGDIR, "02_cutflow_efficiency_365GeV.png"))
+
+    make_all_mass_plots()
+
+    lepton_pt_turnon_plot(os.path.join(FIGDIR, "07_lepton_pt_efficiency_turnon.png"))
+    btag_stats = btag_efficiency_comparison_plot(os.path.join(FIGDIR, "08_btag_efficiency_comparison.png"))
+
+    gap_panel(
+        [r"X1: Bhabha $e^+e^-(\gamma)$", r"X2: $Z\rightarrow q\bar{q}$",
+         r"X3: $Z\rightarrow \mu\mu/\tau\tau$", r"X4: $\gamma\gamma\rightarrow$ hadrons",
+         "X5: rare/other"],
+        [45, 30, 15, 8, 2], 91, os.path.join(FIGDIR, "09_gap_91GeV.png"),
+        "Task A not carried out in the talk -- hypothesis only",
+    )
+    gap_panel(
+        ["ZH signal", "WW background", r"$e^+e^- \rightarrow f\bar{f}$ / ZZ background"],
+        [15, 55, 30], 240, os.path.join(FIGDIR, "10_gap_240GeV.png"),
+        "Task A entirely missing from the talk -- expected mix only",
+    )
+
+    completeness_plot(
+        [("toy SM sum (Task A not done at 91 GeV)", "X2", 1.0)],
+        sl.S91_MJ1L1_CENTERS, sl.S91_MJ1L1_DATA,
+        "m(J1, l1) [GeV]", 91, os.path.join(FIGDIR, "11_completeness_91GeV.png"),
+    )
+    completeness_plot(
+        [(r"$t\bar{t}$", "X1", 0.30), (r"$e^+e^- \rightarrow f\bar{f}$", "X2", 0.25),
+         ("ZZ", "X5", 0.20), ("ZH", "X3", 0.15), ("WW", "X4", 0.10)],
+        sl.S365_MTOT_CENTERS, sl.S365_MTOT_DATA,
+        "(j1+j2+j3+j4+l1+l2).mass [GeV]", 365, os.path.join(FIGDIR, "12_completeness_365GeV.png"),
+    )
 
     print("SM interpretation figures written to", FIGDIR)
-    print("Cross-energy consistency pulls:", stats["pull_lep"], stats["pull_btag"])
-    print("Quoted-selection reference points (talk):", QUOTED)
+    print("b-tag toy stats:", btag_stats)
 
 
 if __name__ == "__main__":

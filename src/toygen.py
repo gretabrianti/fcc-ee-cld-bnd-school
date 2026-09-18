@@ -110,3 +110,79 @@ def compatibility_pull(a, a_err, b, b_err):
     if denom == 0:
         return 0.0
     return (a - b) / denom
+
+
+# ---------------------------------------------------------------------------
+# Significance estimators.
+#
+# The installed fce_studio package (bnd_school conda env,
+# fce_studio/engine/fitter.py) implements THREE different discovery
+# significance estimators:
+#   1. _counting_significance:  sqrt(2n), background-free Asimov approximation
+#   2. _poisson_excess_significance: Asimov formula for n observed on b exact
+#   3. _fit_and_test: full pyhf profile-likelihood fit (q0 test statistic),
+#      which profiles the luminosity/JEC/lepton/b-tag nuisance parameters
+#      defined in fce_studio/engine/systematics.py
+#
+# This is almost certainly why the 91 GeV excess is quoted as three different
+# numbers across the talk (5.79 / 7.8 / 7 sigma, see slides 14 and 16): they
+# are plausibly three different estimators of the same or a similar excess,
+# not three independent measurements. (1) ignores background entirely and is
+# always the most optimistic; (2) accounts for background but not
+# systematics; (3) is the most conservative because it profiles nuisance
+# parameters. We cannot re-run the real pyhf fit without the actual data, so
+# `significance_with_bkg_uncertainty` below reproduces tier (3) using the
+# standard public formula for an Asimov significance with an uncertain
+# background (Cowan, Cranmer, Gross, Vitells, "Asymptotic formulae...",
+# Eur.Phys.J.C71:1554 (2011), eq. 25) -- not fce's proprietary code, but the
+# same well-known statistics result pyhf's single-bin q0 test reduces to.
+# ---------------------------------------------------------------------------
+
+SIG_CAP = 10.0
+
+
+def counting_significance(n_tot):
+    """Tier 1: background-free sqrt(2n) Asimov approximation."""
+    n_tot = np.asarray(n_tot, dtype=float)
+    return np.clip(np.sqrt(2.0 * np.clip(n_tot, 0, None)), 0, SIG_CAP)
+
+
+def poisson_excess_significance(n, b):
+    """Tier 2: Asimov discovery significance of n observed on b expected (exact, no systematics)."""
+    n, b = float(n), float(b)
+    if b <= 0 or n <= b:
+        return 0.0
+    val = 2.0 * (n * np.log(n / b) - (n - b))
+    return float(np.clip(np.sqrt(val), 0, SIG_CAP))
+
+
+def significance_with_bkg_uncertainty(n, b, sigma_b):
+    """Tier 3: Asimov significance with an uncertain background (Cowan et al.
+    2011, eq. 25) -- our best public-formula stand-in for a profile-likelihood
+    fit that profiles systematic nuisance parameters on the background.
+    """
+    n, b, sigma_b = float(n), float(b), float(sigma_b)
+    if b <= 0 or n <= b:
+        return 0.0
+    if sigma_b <= 0:
+        return poisson_excess_significance(n, b)
+    # n already equals s+b (total observed), so n itself appears here, not n+b.
+    b2, sb2 = b * b, sigma_b * sigma_b
+    term1 = n * np.log(n * (b + sb2) / (b2 + n * sb2))
+    term2 = (b2 / sb2) * np.log(1.0 + sb2 * (n - b) / (b * (b + sb2)))
+    val = 2.0 * (term1 - term2)
+    return float(np.clip(np.sqrt(val), 0, SIG_CAP)) if val > 0 else 0.0
+
+
+def background_relative_uncertainty(lumi_unc, jec_per_jet, lep_per_el, lep_per_mu,
+                                     btag_per_bjet, n_jets, n_el, n_mu, n_bjets):
+    """Combine the per-source systematics (fce_studio/engine/systematics.py
+    constants) in quadrature into one relative background-rate uncertainty,
+    for a representative event topology (n_jets, n_el, n_mu, n_bjets).
+    """
+    return float(np.sqrt(
+        lumi_unc ** 2
+        + (jec_per_jet * n_jets) ** 2
+        + (lep_per_el * n_el + lep_per_mu * n_mu) ** 2
+        + (btag_per_bjet * n_bjets) ** 2
+    ))
