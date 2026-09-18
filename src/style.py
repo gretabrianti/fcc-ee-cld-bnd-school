@@ -1,6 +1,6 @@
 """
 Shared plot style: puma (https://github.com/umami-hep/puma) with the ATLAS
-badge replaced by a "CLD Collaboration" one, dpi=200 everywhere, and no plot
+badge replaced by a "CLD Collaboration" one, dpi=300 everywhere, and no plot
 titles (only axis labels/legends -- titles are set to "").
 
 puma is built on top of `atlasify`; every `PlotObject` (HistogramPlot,
@@ -14,10 +14,20 @@ from __future__ import annotations
 
 import atlasify
 
-DPI = 200
+DPI = 300
 
 BRAND = "CLD"
 FIRST_TAG = "Collaboration Simulation (toy)"
+
+# puma's own PlotObject defaults atlas_fontsize to `fontsize=10` (see
+# puma/plot_base.py __post_init__), well below atlasify's own out-of-the-box
+# defaults (16/16/12, tuned for full-page ATLAS figures). cld_atlasify()
+# matches puma's 10pt badge explicitly so every figure in this repo -- puma
+# histograms and plain-matplotlib bar/line charts alike -- carries the same
+# badge size, regardless of figure size.
+BADGE_FONTSIZE = 10
+BADGE_OFFSET = 7
+BADGE_INDENT = 8
 
 PALETTE = {
     "X1": "#3B75AF",
@@ -52,7 +62,9 @@ def puma_kwargs(energy_gev, **extra):
 
 def cld_atlasify(ax, energy_gev=None, subtext_extra=None):
     """Apply the CLD badge to a plain matplotlib Axes (for plots that don't
-    map onto a puma plot type, e.g. bar/line charts)."""
+    map onto a puma plot type, e.g. bar/line charts), at the same size puma
+    uses for its own histogram/efficiency plots (see BADGE_FONTSIZE above).
+    """
     subtext = sqrt_s_tag(energy_gev) if energy_gev is not None else None
     if subtext_extra:
         subtext = subtext_extra if subtext is None else f"{subtext}\n{subtext_extra}"
@@ -61,18 +73,28 @@ def cld_atlasify(ax, energy_gev=None, subtext_extra=None):
         subtext=subtext,
         brand=BRAND,
         axes=ax,
+        font_size=BADGE_FONTSIZE,
+        label_font_size=BADGE_FONTSIZE,
+        sub_font_size=BADGE_FONTSIZE,
+        offset=BADGE_OFFSET,
+        indent=BADGE_INDENT,
     )
 
 
-def annotate_chi2(ax, text):
-    """Place a chi2/ndof annotation just under the CLD / sqrt(s) badge
-    (top-left), left-aligned, no box -- the standard spot for it on every
-    distribution-comparison plot in this repo.
+def annotate_note(ax, text):
+    """Place a short note just under the CLD / sqrt(s) badge (top-left),
+    left-aligned, no box, same font as the rest of the axis text -- reads as
+    a third line of the badge. Used for chi2/ndof values and other small
+    per-plot facts (e.g. an observed event count) that belong next to the
+    badge rather than floating elsewhere on the figure.
     """
     ax.text(
         0.02, 0.84, text,
-        transform=ax.transAxes, fontsize=9, va="top", ha="left",
+        transform=ax.transAxes, fontsize=BADGE_FONTSIZE, va="top", ha="left",
     )
+
+
+annotate_chi2 = annotate_note  # backward-compatible alias
 
 
 def savefig(fig, path, dpi=DPI):

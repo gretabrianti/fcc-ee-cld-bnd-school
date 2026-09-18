@@ -1,7 +1,7 @@
 """
 Task A interpretation: Standard Model samples.
 
-Every figure is written to its own file under figures/sm/, dpi=200, no plot
+Every figure is written to its own file under figures/sm/, dpi=300, no plot
 titles (CLD-branded badge + axis labels + legend only), styled with `puma`.
 Toy MC is always compared to the pseudo-data points read off the
 corresponding slide (see slide_readings.py) wherever the talk shows any.
@@ -35,67 +35,88 @@ def edges_from_centers(centers):
 
 
 # ---------------------------------------------------------------------------
-# 1) Cutflow EFFICIENCY plots (replaces the old tables): cumulative fraction
-#    of events surviving each cut, one line per process, log-y. Per-cut
-#    efficiencies are the same assumptions as before (marked '*' in the
-#    legend note) since the talk gives no absolute cutflow numbers.
+# 1) Cutflow EFFICIENCY plots: cumulative fraction of events surviving each
+#    cut, drawn as a bar chart on a linear 0-1.2 scale (ATLAS cutflow-plot
+#    convention), one figure per process, cuts spelled out in LaTeX. All
+#    per-cut efficiencies are assumptions (the talk gives no absolute
+#    cutflow numbers, only cut definitions).
 # ---------------------------------------------------------------------------
 
-CUTFLOWS_160 = {
-    r"Higgs ($\nu\nu H$, $H\rightarrow b\bar{b}$)": [
-        ("presel.", 1.0), ("2j, b-tag>0.7*", 0.55), ("0 lep*", 0.85), ("MET cut*", 0.70),
-    ],
-    "WW (semileptonic)": [
-        ("presel.", 1.0), ("2j*", 0.80), ("1 lep*", 0.60), ("MET>5*", 0.90),
-    ],
-}
+CUTFLOWS_160 = [
+    (r"Higgs ($\nu\nu H$, $H\rightarrow b\bar{b}$)", "X1", [
+        ("Presel.", 1.0),
+        (r"$N_{jet}=2$, $b\text{-tag}>0.7$", 0.55),
+        (r"$N_{lep}=0$", 0.85),
+        (r"MET $p_T$ cut", 0.70),
+    ]),
+    ("WW (semileptonic)", "X2", [
+        ("Presel.", 1.0),
+        (r"$N_{jet}=2$", 0.80),
+        (r"$N_{lep}=1$", 0.60),
+        (r"MET $p_T>5$ GeV", 0.90),
+    ]),
+]
 
-CUTFLOWS_365 = {
-    r"$t\bar{t}$": [
-        ("presel.", 1.0), (">=2lep*", 0.35), (">=4j,b>0.7*", 0.45), ("lep pt>20*", 0.85), ("MET>20*", 0.80),
-    ],
-    r"$e^+e^- \rightarrow f\bar{f}$": [
-        ("presel.", 1.0), (">=2lep*", 0.40), (">=4j,b<0.7*", 0.50), ("lep pt>20*", 0.85), ("m(ll) win*", 0.60),
-    ],
-    r"$ZZ \rightarrow \ell\ell q\bar{q}$ (X5)": [
-        ("presel.", 1.0), (">=2lep*", 0.45), (">=2j,b<0.7*", 0.55), ("pt>20*", 0.85), ("Z-veto*", 0.55), ("MET<20*", 0.75),
-    ],
-    "ZH": [
-        ("presel.", 1.0), (">=2lep*", 0.30), (">=2j,b>0.7*", 0.50), ("pt>20*", 0.85), ("m(ll) win*", 0.60), ("MET<10*", 0.70),
-    ],
-    "WW (365 sel.)": [
-        ("presel.", 1.0), (">=0lep*", 1.0), (">=2j,b<0.7*", 0.65), ("pt>20*", 0.80),
-    ],
-}
+CUTFLOWS_365 = [
+    (r"$t\bar{t}$", "X1", [
+        ("Presel.", 1.0),
+        (r"$N_{lep}\geq2$", 0.35),
+        (r"$N_{jet}\geq4$, $b\text{-tag}>0.7$", 0.45),
+        (r"$p_T^{lep}>20$ GeV", 0.85),
+        (r"MET $p_T>20$ GeV", 0.80),
+    ]),
+    (r"$e^+e^- \rightarrow f\bar{f}$", "X2", [
+        ("Presel.", 1.0),
+        (r"$N_{lep}\geq2$", 0.40),
+        (r"$N_{jet}\geq4$, $b\text{-tag}<0.7$", 0.50),
+        (r"$p_T^{lep}>20$ GeV", 0.85),
+        (r"$80<m(\ell\ell)<100$ GeV", 0.60),
+    ]),
+    (r"$ZZ \rightarrow \ell\ell q\bar{q}$ (X5)", "X5", [
+        ("Presel.", 1.0),
+        (r"$N_{lep}\geq2$", 0.45),
+        (r"$N_{jet}\geq2$, $b\text{-tag}<0.7$", 0.55),
+        (r"$p_T>20$ GeV", 0.85),
+        ("Z-veto", 0.55),
+        (r"MET $p_T<20$ GeV", 0.75),
+    ]),
+    ("ZH", "X3", [
+        ("Presel.", 1.0),
+        (r"$N_{lep}\geq2$", 0.30),
+        (r"$N_{jet}\geq2$, $b\text{-tag}>0.7$", 0.50),
+        (r"$p_T>20$ GeV", 0.85),
+        (r"$80<m(\ell\ell)<100$ GeV", 0.60),
+        (r"MET $p_T<10$ GeV", 0.70),
+    ]),
+    ("WW (365 sel.)", "X4", [
+        ("Presel.", 1.0),
+        (r"$N_{lep}\geq0$", 1.0),
+        (r"$N_{jet}\geq2$, $b\text{-tag}<0.7$", 0.65),
+        (r"$p_T>20$ GeV", 0.80),
+    ]),
+]
 
 
-def cutflow_efficiency_plot(cutflow_dict, energy_gev, outpath):
-    """Cumulative selection efficiency vs. cut stage, one line per process.
-
-    Different processes have different cuts at each stage (see
-    CUTFLOWS_160/365 above), so the x-axis intentionally uses generic
-    "Cut N" positions rather than literal cut text -- labelling every
-    process's stage 2 as e.g. "2j, b-tag>0.7" would be wrong for the
-    processes whose own stage 2 is a different cut. The per-process cut
-    definitions are in the legend label and in CODE_EXPLAINED.md.
+def cutflow_bar_plot(proc_label, colour_key, cuts, energy_gev, outpath):
+    """Cumulative selection efficiency vs. cut, as a bar chart on a linear
+    0-1.2 scale, ATLAS cutflow-plot style. One file per process so the cuts
+    can be spelled out exactly (LaTeX) without misdescribing another
+    process's stages.
     """
-    fig, ax = plt.subplots(figsize=(7, 5))
-    colours = list(style.PALETTE.values())
-    max_len = 0
-    for i, (proc_name, cuts) in enumerate(cutflow_dict.items()):
-        rows = cutflow(1.0, cuts)
-        x = np.arange(len(rows) + 1)
-        y = [1.0] + [r["cum_eff"] for r in rows]
-        max_len = max(max_len, len(x))
-        ax.plot(x, y, marker="o", lw=1.8, color=colours[i % len(colours)], label=proc_name)
-    stage_labels = ["presel."] + [f"cut {i + 1}" for i in range(max_len - 1)]
-    ax.set_xticks(np.arange(max_len))
-    ax.set_xticklabels(stage_labels, fontsize=9)
-    ax.set_yscale("log")
-    ax.set_ylim(1e-3, 1.5)
-    ax.set_ylabel("cumulative efficiency (toy, * = assumed per-cut eff.)")
-    ax.legend(fontsize=8, loc="lower left")
-    ax.grid(alpha=0.3, which="both")
+    rows = cutflow(1.0, cuts)
+    labels = [name for name, _ in cuts]
+    values = [r["cum_eff"] for r in rows]
+
+    fig, ax = plt.subplots(figsize=(6, 4.5))
+    x = np.arange(len(labels))
+    ax.bar(x, values, color=style.PALETTE[colour_key], width=0.6,
+           edgecolor="black", linewidth=0.6, label=proc_label)
+    ax.axhline(1.0, color="gray", lw=0.8, ls=":")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=9)
+    ax.set_ylim(0, 1.2)
+    ax.set_ylabel("cumulative efficiency (toy, assumed per cut)")
+    ax.legend(fontsize=9, loc="upper right")
     style.cld_atlasify(ax, energy_gev)
     style.savefig(fig, outpath)
     plt.close(fig)
@@ -151,25 +172,25 @@ def make_all_mass_plots():
     results["higgs_160"] = toy_vs_data_histogram(
         relativistic_bw_resonance(6000, 125, 4.1, 8, 1), (60, 145),
         sl.S160_HIGGS_MJJ_CENTERS, sl.S160_HIGGS_MJJ_DATA,
-        "m(J1, J2) [GeV]", 160, os.path.join(FIGDIR, "03_mass_higgs_160GeV.png"), "X1",
+        "m(J1, J2) [GeV]", 160, os.path.join(FIGDIR, "08_mass_higgs_160GeV.png"), "X1",
         r"Higgs (toy, $\nu\nu H$)",
     )
     results["ww_160"] = toy_vs_data_histogram(
         relativistic_bw_resonance(8000, 153, 2.0, 6, 2), (122, 168),
         sl.S160_WW_MLMETJJ_CENTERS, sl.S160_WW_MLMETJJ_DATA,
-        "m(l1, MET, J1, J2) [GeV]", 160, os.path.join(FIGDIR, "04_mass_ww_160GeV.png"), "X2",
+        "m(l1, MET, J1, J2) [GeV]", 160, os.path.join(FIGDIR, "09_mass_ww_160GeV.png"), "X2",
         "WW (toy, semileptonic)",
     )
     results["ttbar_365"] = toy_vs_data_histogram(
         relativistic_bw_resonance(6000, 178, 1.4, 20, 3), (110, 250),
         sl.S365_TTBAR_MASS_CENTERS, sl.S365_TTBAR_MASS_DATA,
-        "(j1+met+l1).mass [GeV]", 365, os.path.join(FIGDIR, "05_mass_ttbar_365GeV.png"), "X1",
+        "(j1+met+l1).mass [GeV]", 365, os.path.join(FIGDIR, "10_mass_ttbar_365GeV.png"), "X1",
         r"$t\bar{t}$ (toy)",
     )
     results["zz_365"] = toy_vs_data_histogram(
         relativistic_bw_resonance(9000, 91, 2.5, 6, 5), (55, 125),
         sl.S365_ZZ_MASS_CENTERS, sl.S365_ZZ_MASS_DATA,
-        "(j1+j2).mass [GeV]", 365, os.path.join(FIGDIR, "06_mass_zz_365GeV.png"), "X5",
+        "(j1+j2).mass [GeV]", 365, os.path.join(FIGDIR, "11_mass_zz_365GeV.png"), "X5",
         r"$ZZ \rightarrow \ell\ell q\bar{q}$ (toy)",
     )
     return results
@@ -237,7 +258,7 @@ def btag_efficiency_comparison_plot(outpath):
     eff_160 = np.clip(g.normal(nominal_eff, abs_unc, 400), 0, 1).mean()
     eff_365 = np.clip(g.normal(nominal_eff, abs_unc, 400), 0, 1).mean()
 
-    fig, ax = plt.subplots(figsize=(5.5, 5))
+    fig, ax = plt.subplots(figsize=(6, 4.5))
     ax.bar(["160 GeV", "365 GeV"], [eff_160, eff_365], yerr=[abs_unc, abs_unc],
            color=[style.PALETTE["X1"], style.PALETTE["X3"]], capsize=6, width=0.5)
     ax.axhline(nominal_eff, color="gray", ls=":", lw=1)
@@ -253,11 +274,11 @@ def btag_efficiency_comparison_plot(outpath):
 # 4) Gap panels for 91 and 240 GeV (Task A missing/never done in the talk).
 # ---------------------------------------------------------------------------
 
-def gap_panel(labels, fractions, energy_gev, outpath, note):
-    fig, ax = plt.subplots(figsize=(8, 5))
+def gap_panel(labels, fractions, energy_gev, outpath, note=None):
+    fig, ax = plt.subplots(figsize=(6, 4.5))
     colours = list(style.PALETTE.values())[: len(labels)]
     ax.barh(labels, fractions, color=colours)
-    ax.set_xlabel(f"hypothesised / expected fraction [%]  --  {note}")
+    ax.set_xlabel("hypothesised / expected fraction [%]")
     style.cld_atlasify(ax, energy_gev)
     style.savefig(fig, outpath)
     plt.close(fig)
@@ -310,37 +331,42 @@ def completeness_plot(components, data_centers, data_values, xlabel, energy_gev,
 
 
 def main():
-    cutflow_efficiency_plot(CUTFLOWS_160, 160, os.path.join(FIGDIR, "01_cutflow_efficiency_160GeV.png"))
-    cutflow_efficiency_plot(CUTFLOWS_365, 365, os.path.join(FIGDIR, "02_cutflow_efficiency_365GeV.png"))
+    cutflow_bar_plot(*CUTFLOWS_160[0], 160, os.path.join(FIGDIR, "01_cutflow_higgs_160GeV.png"))
+    cutflow_bar_plot(*CUTFLOWS_160[1], 160, os.path.join(FIGDIR, "02_cutflow_ww_160GeV.png"))
+    cutflow_bar_plot(*CUTFLOWS_365[0], 365, os.path.join(FIGDIR, "03_cutflow_ttbar_365GeV.png"))
+    cutflow_bar_plot(*CUTFLOWS_365[1], 365, os.path.join(FIGDIR, "04_cutflow_eeff_365GeV.png"))
+    cutflow_bar_plot(*CUTFLOWS_365[2], 365, os.path.join(FIGDIR, "05_cutflow_zz_365GeV.png"))
+    cutflow_bar_plot(*CUTFLOWS_365[3], 365, os.path.join(FIGDIR, "06_cutflow_zh_365GeV.png"))
+    cutflow_bar_plot(*CUTFLOWS_365[4], 365, os.path.join(FIGDIR, "07_cutflow_ww_365GeV.png"))
 
     mass_chi2 = make_all_mass_plots()
 
-    lepton_pt_turnon_plot(os.path.join(FIGDIR, "07_lepton_pt_efficiency_turnon.png"))
-    btag_stats = btag_efficiency_comparison_plot(os.path.join(FIGDIR, "08_btag_efficiency_comparison.png"))
+    lepton_pt_turnon_plot(os.path.join(FIGDIR, "12_lepton_pt_efficiency_turnon.png"))
+    btag_stats = btag_efficiency_comparison_plot(os.path.join(FIGDIR, "13_btag_efficiency_comparison.png"))
 
     gap_panel(
         [r"X1: Bhabha $e^+e^-(\gamma)$", r"X2: $Z\rightarrow q\bar{q}$",
          r"X3: $Z\rightarrow \mu\mu/\tau\tau$", r"X4: $\gamma\gamma\rightarrow$ hadrons",
          "X5: rare/other"],
-        [45, 30, 15, 8, 2], 91, os.path.join(FIGDIR, "09_gap_91GeV.png"),
+        [45, 30, 15, 8, 2], 91, os.path.join(FIGDIR, "14_gap_91GeV.png"),
         "Task A not carried out in the talk -- hypothesis only",
     )
     gap_panel(
         ["ZH signal", "WW background", r"$e^+e^- \rightarrow f\bar{f}$ / ZZ background"],
-        [15, 55, 30], 240, os.path.join(FIGDIR, "10_gap_240GeV.png"),
+        [15, 55, 30], 240, os.path.join(FIGDIR, "15_gap_240GeV.png"),
         "Task A entirely missing from the talk -- expected mix only",
     )
 
     comp_chi2_91 = completeness_plot(
         [("toy SM sum (Task A not done at 91 GeV)", "X2", 1.0)],
         sl.S91_MJ1L1_CENTERS, sl.S91_MJ1L1_DATA,
-        "m(J1, l1) [GeV]", 91, os.path.join(FIGDIR, "11_completeness_91GeV.png"),
+        "m(J1, l1) [GeV]", 91, os.path.join(FIGDIR, "16_completeness_91GeV.png"),
     )
     comp_chi2_365 = completeness_plot(
         [(r"$t\bar{t}$", "X1", 0.30), (r"$e^+e^- \rightarrow f\bar{f}$", "X2", 0.25),
          ("ZZ", "X5", 0.20), ("ZH", "X3", 0.15), ("WW", "X4", 0.10)],
         sl.S365_MTOT_CENTERS, sl.S365_MTOT_DATA,
-        "(j1+j2+j3+j4+l1+l2).mass [GeV]", 365, os.path.join(FIGDIR, "12_completeness_365GeV.png"),
+        "(j1+j2+j3+j4+l1+l2).mass [GeV]", 365, os.path.join(FIGDIR, "17_completeness_365GeV.png"),
     )
 
     print("SM interpretation figures written to", FIGDIR)

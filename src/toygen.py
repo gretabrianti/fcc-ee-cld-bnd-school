@@ -68,6 +68,75 @@ def wrong_pairing_smear(correct_values, mis_id_fraction, spread, seed_offset=0):
     return values
 
 
+def three_way_pairing_toy(
+    n, w_target, w_width, w_comb_scale, w_comb_range,
+    hnl_mass, hnl_width, hnl_comb_scale, hnl_comb_range,
+    resolution, seed_offset=0,
+):
+    """Model the jet-pairing ambiguity slide 20 flags ("sub-optimal pairing
+    might lead to large spread") properly, instead of an arbitrary fixed
+    correct/incorrect fraction: with 3 candidate jet-pairings per event, only
+    one is truly the N -> ... W* pair. A "naive" reconstruction always reads
+    off one fixed slot (equivalent to using whatever jet ordering the
+    ntuple happens to store, with no constraint applied -- this is what
+    slides 19/20 appear to do, given the flat, low-significance shape shown
+    there). A "constrained" reconstruction instead picks, per event, the
+    pairing whose dijet mass is closest to m_W -- a standard kinematic-fit
+    trick -- and reads BOTH the W mass and the HNL mass off that same
+    pairing (you don't get to use the HNL mass itself to pick the pairing,
+    that would bias the measurement; m_W is known in advance).
+
+    Returns a dict with naive_w, constrained_w, naive_hnl, constrained_hnl
+    (each length n) and the fraction of events where the constraint
+    actually recovers the true pairing, for both strategies.
+    """
+    g = rng(seed_offset)
+    true_slot = g.integers(0, 3, size=n)
+
+    w_candidates = np.stack([
+        combinatorial_background(n, *w_comb_range, w_comb_scale, seed_offset + 10 + i)
+        for i in range(3)
+    ], axis=1)
+    hnl_candidates = np.stack([
+        combinatorial_background(n, *hnl_comb_range, hnl_comb_scale, seed_offset + 20 + i)
+        for i in range(3)
+    ], axis=1)
+
+    w_signal = relativistic_bw_resonance(n, w_target, w_width, resolution, seed_offset + 1)
+    hnl_signal = relativistic_bw_resonance(n, hnl_mass, hnl_width, resolution * 1.5, seed_offset + 2)
+
+    rows = np.arange(n)
+    w_candidates[rows, true_slot] = w_signal
+    hnl_candidates[rows, true_slot] = hnl_signal
+
+    naive_slot = np.zeros(n, dtype=int)  # always read slot 0 -- no constraint applied
+    constrained_slot = np.argmin(np.abs(w_candidates - w_target), axis=1)
+
+    return dict(
+        naive_w=w_candidates[rows, naive_slot],
+        constrained_w=w_candidates[rows, constrained_slot],
+        naive_hnl=hnl_candidates[rows, naive_slot],
+        constrained_hnl=hnl_candidates[rows, constrained_slot],
+        naive_correct_frac=float(np.mean(naive_slot == true_slot)),
+        constrained_correct_frac=float(np.mean(constrained_slot == true_slot)),
+    )
+
+
+def met_like(n, scale, n_components=2, seed_offset=0):
+    """Toy MET-like magnitude distribution: the magnitude of a vector sum of
+    `n_components` independent Gaussian-distributed momentum components
+    (a chi-distribution), which gives the characteristic broad hump shape
+    (rises from 0, peaks at a few x `scale`, falls off) typical of a missing
+    transverse momentum spectrum built from one or more invisible particles
+    -- used for the 91 GeV HNL met.pt cross-check (slide 16), where the
+    "invisible" momentum comes from the two neutrinos in the decay chain
+    (Z -> N nu-bar, N -> l' W*, W* -> l'' nu'').
+    """
+    g = rng(seed_offset)
+    components = g.normal(0, scale, size=(n, n_components))
+    return np.sqrt(np.sum(components**2, axis=1))
+
+
 def poisson_pseudodata(expected_counts, seed_offset=0):
     g = rng(seed_offset)
     return g.poisson(np.clip(expected_counts, 0, None))
@@ -189,6 +258,24 @@ def significance_with_bkg_uncertainty(n, b, sigma_b):
     term2 = (b2 / sb2) * np.log(1.0 + sb2 * (n - b) / (b * (b + sb2)))
     val = 2.0 * (term1 - term2)
     return float(np.clip(np.sqrt(val), 0, SIG_CAP)) if val > 0 else 0.0
+
+
+def global_significance(local_sigma, n_trials):
+    """Approximate look-elsewhere-corrected ("global") significance from a
+    local one, via a conservative Bonferroni trials factor:
+    p_global = min(1, n_trials * p_local). This is not as precise as the
+    Gross-Vitells (2010) asymptotic formula (which needs details of the
+    search window / bump-hunting procedure we don't have from the slides),
+    but it only needs an estimate of how many effectively-independent
+    places were searched, and it over-corrects if anything -- i.e. it
+    likely UNDERSTATES the surviving global significance, not overstates it.
+    """
+    from scipy.stats import norm
+    p_local = norm.sf(local_sigma)
+    p_global = min(1.0, p_local * n_trials)
+    if p_global <= 0:
+        return SIG_CAP
+    return float(np.clip(norm.isf(p_global), 0, SIG_CAP))
 
 
 def background_relative_uncertainty(lumi_unc, jec_per_jet, lep_per_el, lep_per_mu,

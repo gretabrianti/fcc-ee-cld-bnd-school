@@ -42,7 +42,7 @@ first checking that this is still the intent.
 
 Figures are styled with [`puma`](https://github.com/umami-hep/puma) (the
 FTAG-group plotting library built on `atlasify`), with the ATLAS badge
-re-pointed at "CLD Collaboration"; every figure is its own PNG at dpi=200
+re-pointed at "CLD Collaboration"; every figure is its own PNG at dpi=300
 with no plot titles (axis labels + legend + CLD badge only).
 
 ## Layout
@@ -53,20 +53,28 @@ src/
                         talk (pseudo-data points, quoted significances/
                         percentages) plus the fce_studio systematics constants
   toygen.py             shared toy-MC building blocks (resonances, combinatorial
-                        backgrounds, cutflow helper, significance formulas)
-  style.py              shared CLD/puma plot style (dpi=200, no titles)
-  interpret_sm.py       Task A: cutflow EFFICIENCY plots, per-process mass
-                        spectra vs. reported pseudo-data, lepton-pt turn-on
-                        efficiency (puma VarVsEffPlot) and b-tag efficiency
-                        cross-energy checks, 91/240 GeV gap panels,
-                        SM-completeness checks behind the Task B excesses
-  interpret_bsm.py      Task B: HNL hypothesis-vs-alternative tests, W/HNL
-                        mass reconstruction toys, and a significance-tier
-                        validation (see CODE_EXPLAINED.md) that reconciles
-                        the three different sigma values quoted at 91 GeV
+                        backgrounds, 3-way kinematic-pairing toy, MET-like toy,
+                        significance formulas incl. look-elsewhere correction)
+  style.py              shared CLD/puma plot style (dpi=300, no titles,
+                        badge size matched between puma and plain-matplotlib
+                        figures)
+  interpret_sm.py       Task A: per-process cutflow EFFICIENCY bar charts
+                        (ATLAS-style, linear scale, LaTeX cuts), mass spectra
+                        vs. reported pseudo-data with chi2/ndof, lepton-pt
+                        turn-on efficiency (puma VarVsEffPlot) and b-tag
+                        efficiency cross-energy checks, 91/240 GeV gap
+                        panels, SM-completeness checks behind the Task B
+                        excesses
+  interpret_bsm.py      Task B: HNL hypothesis-vs-alternative tests (91 and
+                        365 GeV) with chi2/ndof, a second independent 91 GeV
+                        observable (met.pt, slide 16), a proper kinematic
+                        jet-pairing treatment of the 365 GeV W/HNL mass
+                        plots, a significance-tier validation with a
+                        look-elsewhere (global) correction, and an explicit
+                        discussion of the 40 GeV vs. 150 GeV HNL mass tension
 figures/
-  sm/                   PNGs produced by interpret_sm.py (12 figures)
-  bsm/                  PNGs produced by interpret_bsm.py (7 figures)
+  sm/                   PNGs produced by interpret_sm.py (17 figures)
+  bsm/                  PNGs produced by interpret_bsm.py (8 figures)
 notes/
   process_mapping.md    full reasoning behind the X1..X5 -> process mapping
                         used in this repo, energy point by energy point, with
@@ -97,26 +105,44 @@ for what every figure means and how to read it.**
 visibility:
 
 1. **91 GeV significance is quoted 3 ways across the deck** (5.79 / 7.8 / 7
-   sigma). `interpret_bsm.py`'s `02_significance_hierarchy_91GeV.png`
+   sigma). `interpret_bsm.py`'s `04_significance_hierarchy_91GeV.png`
    reproduces the same 3-tier pattern using the same significance-estimator
    logic implemented in `fce_studio/engine/fitter.py`, and finds the
    bkg-free tier lands at 7.9σ -- close to the quoted 7.8σ -- which is
    evidence (not proof) that the 3 numbers are 3 different estimators of one
    excess. Confirm against the real fit log which estimator produced which
    number, and quote only the most conservative one going forward.
-2. **No absolute cutflow numbers are given** in the talk, only cut
+2. **Neither quoted significance has a look-elsewhere (global) correction.**
+   The same figures add a 4th curve applying a conservative Bonferroni
+   trials factor (`n_trials=8`, order-of-magnitude only); it sits well below
+   the local significance. Any discovery claim needs a real trials estimate
+   from the actual search procedure before it goes back in the talk.
+3. **The two HNL mass claims (~40 GeV at 91 GeV, ~150 GeV at 365 GeV) are in
+   tension** -- a single particle has one mass. `interpret_bsm.py` prints
+   this explicitly and shows (05/06 figures) that the 365 GeV measurement is
+   the one to be skeptical of: it has an unresolved 3-way jet-pairing
+   ambiguity (only 33% correct with the naive/no-constraint approach the
+   slides appear to use) that a simple kinematic constraint
+   (`|m(jj)-m_W|` minimisation) resolves to ~88% in the toy, meaningfully
+   narrowing the peak. Apply the equivalent constraint in the real analysis
+   before quoting m_HNL~150 GeV again.
+4. **No absolute cutflow numbers are given** in the talk, only cut
    definitions and two quoted percentages (20.9% at 91 GeV, 1.8% at 160
-   GeV). The cutflow tables in `interpret_sm.py` use assumed per-cut
+   GeV). The cutflow plots in `interpret_sm.py` use assumed per-cut
    efficiencies (marked `*`). If/when the team extracts the real cutflow
    from `fce` (aggregate yields only, not the underlying events -- this is
    a summary statistic, not "the data"), replace the `*` numbers with the
    real ones for a genuine cross-energy consistency check instead of a toy
    one.
-3. **Task A was never carried out for 91 GeV** (only Task B was shown) **and
+5. **Task A was never carried out for 91 GeV** (only Task B was shown) **and
    is entirely missing for 240 GeV** (3 samples, no slide at all). This repo
    only provides an expected-composition placeholder for both -- the actual
    identification needs to be done by the team from the real distributions.
-4. Any luminosity/cross-section values used elsewhere in the real analysis
+6. **HNL mixing-angle cross-check with LEP/L3/DELPHI limits is not
+   attempted** in this repo (would need the real observed rate and an
+   accurate citation of the published exclusion contours, not a
+   from-memory guess) -- a concrete next step for whoever picks this up.
+7. Any luminosity/cross-section values used elsewhere in the real analysis
    should be confirmed against the actual generator config; this repo
    deliberately does not use or infer absolute physical cross-sections.
 
