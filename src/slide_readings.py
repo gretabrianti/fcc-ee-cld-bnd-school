@@ -68,6 +68,21 @@ S365_ZZ_MASS_DATA = np.array([3, 10, 47, 107, 20, 6, 2])
 S365_W_MASS_CENTERS = np.array([25, 45, 65, 75, 85, 95, 115, 135])
 S365_W_MASS_DATA = np.array([1, 2, 5, 15, 6, 4, 5, 3])
 
+# Digitised in a second pass (lower precision than the arrays above -- the
+# source pseudo-data points are small and dense on these three panels).
+# e+e- -> ffbar, (j1+j2).mass, slide 10 bottom-right.
+S365_EEFF_MASS_CENTERS = np.array([10, 30, 50, 70, 90, 110, 130, 150, 170, 190, 210, 230])
+S365_EEFF_MASS_DATA = np.array([1, 2, 6, 3, 2, 2, 2, 2, 1, 2, 1, 1])
+
+# ZH, (j1+j2).mass, slide 12 left panel.
+S365_ZH_MASS_CENTERS = np.array([65, 75, 85, 95, 105, 115, 130, 150])
+S365_ZH_MASS_DATA = np.array([9, 16, 15, 24, 14, 11, 3, 1])
+
+# WW (365 GeV selection), m(l1, MET), slide 12 middle panel -- dominated by
+# an underflow-like spike near 0 with a flat low tail; approximate.
+S365_WW_MASS_CENTERS = np.array([10, 40, 70, 100, 130, 160, 190])
+S365_WW_MASS_DATA = np.array([180, 5, 5, 5, 3, 2, 2])
+
 # ---------------------------------------------------------------------------
 # Systematics constants, copied (not imported) from the installed fce_studio
 # package: envs/bnd_school/lib/python3.11/site-packages/fce_studio/engine/

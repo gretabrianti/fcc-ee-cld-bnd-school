@@ -22,7 +22,7 @@ logging.getLogger("puma").setLevel(logging.ERROR)  # silence benign "rejection i
 
 import slide_readings as sl
 import style
-from toygen import cutflow, relativistic_bw_resonance, rng, chi2_between
+from toygen import cutflow, relativistic_bw_resonance, combinatorial_background, rng, chi2_between
 
 FIGDIR = os.path.join(os.path.dirname(__file__), "..", "figures", "sm")
 os.makedirs(FIGDIR, exist_ok=True)
@@ -192,6 +192,26 @@ def make_all_mass_plots():
         sl.S365_ZZ_MASS_CENTERS, sl.S365_ZZ_MASS_DATA,
         "(j1+j2).mass [GeV]", 365, os.path.join(FIGDIR, "11_mass_zz_365GeV.png"), "X5",
         r"$ZZ \rightarrow \ell\ell q\bar{q}$ (toy)",
+    )
+    # Second-pass digitisations (lower precision, see slide_readings.py) --
+    # complete the chi2-per-process table rather than leaving these N/A.
+    results["eeff_365"] = toy_vs_data_histogram(
+        combinatorial_background(6000, 0, 250, 55, seed_offset=6), (0, 250),
+        sl.S365_EEFF_MASS_CENTERS, sl.S365_EEFF_MASS_DATA,
+        "(j1+j2).mass [GeV]", 365, os.path.join(FIGDIR, "18_mass_eeff_365GeV.png"), "X2",
+        r"$e^+e^- \rightarrow f\bar{f}$ (toy)",
+    )
+    results["zh_365"] = toy_vs_data_histogram(
+        relativistic_bw_resonance(6000, 100, 8, 10, seed_offset=7), (55, 150),
+        sl.S365_ZH_MASS_CENTERS, sl.S365_ZH_MASS_DATA,
+        "(j1+j2).mass [GeV]", 365, os.path.join(FIGDIR, "19_mass_zh_365GeV.png"), "X3",
+        "ZH (toy)",
+    )
+    results["ww_365"] = toy_vs_data_histogram(
+        combinatorial_background(6000, 0, 200, 15, seed_offset=8), (0, 200),
+        sl.S365_WW_MASS_CENTERS, sl.S365_WW_MASS_DATA,
+        "m(l1, MET) [GeV]", 365, os.path.join(FIGDIR, "20_mass_ww_365GeV.png"), "X4",
+        "WW, 365 GeV sel. (toy)",
     )
     return results
 

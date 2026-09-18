@@ -212,7 +212,7 @@ def significance_hierarchy_plot(n_obs, event_topology, quoted_sigmas, energy_gev
     ax.text(b_scan[-1], 3.1, "3$\\sigma$ evidence", fontsize=8, ha="right")
     for name, val in quoted_sigmas.items():
         ax.axhline(val, color="red", ls="-", lw=1.8)
-        ax.text(b_scan[-1], val + 0.15, f"{val}$\\sigma$", fontsize=11,
+        ax.text(b_scan[-1], val + 0.15, f"{val:g}$\\sigma$", fontsize=11,
                 color="red", ha="right", fontweight="bold")
     ax.set_xlim(b_scan[0], b_scan[-1])
     ax.set_ylim(0, max([z1, *quoted_sigmas.values()]) * 1.3)
@@ -279,10 +279,14 @@ def main():
     # that n_obs - quoted_excess (31 - 29.6 ~= 1.4) already implies a small
     # background, consistent with this being a tight, high-purity selection.
     n_obs_91 = float(sl.S91_MJ1L1_DATA.sum())
+    # Only the slide-16 "7 sigma" headline is shown on the plot itself (kept
+    # to one number per the presentation's request); the fit-box (5.79) and
+    # text (7.8) values are not dropped, just moved to the surrounding slide
+    # text / PROVENANCE_AUDIT.md, since we can't confirm which tier either
+    # one corresponds to.
     sig_stats_91 = significance_hierarchy_plot(
         n_obs_91, dict(n_jets=1, n_el=0.5, n_mu=0.5, n_bjets=0),
-        {"slide-14 fit box": sl.S91_SIGMA_FITBOX, "slide-14 text": sl.S91_SIGMA_TEXT,
-         "slide-16 headline": sl.S91_SIGMA_SLIDE16},
+        {"slide-16 headline": sl.S91_SIGMA_SLIDE16},
         91, os.path.join(FIGDIR, "04_significance_hierarchy_91GeV.png"),
     )
 
