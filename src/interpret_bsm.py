@@ -220,16 +220,10 @@ def significance_hierarchy_plot(n_obs, event_topology, quoted_sigmas, energy_gev
     ax.text(b_scan[-1], 5.1, "5$\\sigma$ discovery", fontsize=8, ha="right")
     ax.axhline(3, color="gray", ls="--", lw=1)
     ax.text(b_scan[-1], 3.1, "3$\\sigma$ evidence", fontsize=8, ha="right")
-    single = len(quoted_sigmas) == 1
     for name, val in quoted_sigmas.items():
-        if single:
-            ax.axhline(val, color="red", ls="-", lw=1.8)
-            ax.text(b_scan[-1], val + 0.15, f"{val}$\\sigma$", fontsize=11,
-                    color="red", ha="right", fontweight="bold")
-        else:
-            ax.axhline(val, color=style.PALETTE["h1"], ls=":", lw=1.2, alpha=0.8)
-            ax.text(b_scan[-1], val + 0.15, f"quoted: {name} = {val}$\\sigma$", fontsize=7.5,
-                    color=style.PALETTE["h1"], ha="right")
+        ax.axhline(val, color="red", ls="-", lw=1.8)
+        ax.text(b_scan[-1], val + 0.15, f"{val}$\\sigma$", fontsize=11,
+                color="red", ha="right", fontweight="bold")
     ax.set_xlim(b_scan[0], b_scan[-1])
     ax.set_ylim(0, max([z1, *quoted_sigmas.values()]) * 1.3)
     ax.set_xlabel(r"Assumed background yield $b$ [events]")
